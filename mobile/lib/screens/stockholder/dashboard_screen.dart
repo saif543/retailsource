@@ -6,7 +6,7 @@
 // Calls GET /api/demands?product=...&location=... for matching shop owners.
 
 import 'package:flutter/material.dart';
-import '../app_colors.dart';
+import '../../config/app_colors.dart';
 
 class StockholderDashboard extends StatefulWidget {
   final String companyName;

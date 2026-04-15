@@ -6,7 +6,8 @@
 // Submits to POST /api/auth/register
 
 import 'package:flutter/material.dart';
-import '../app_colors.dart';
+import '../../config/app_colors.dart';
+import '../../services/auth_service.dart';
 import 'login_screen.dart';
 
 class ShopOwnerRegisterScreen extends StatefulWidget {
@@ -39,12 +40,8 @@ class _ShopOwnerRegisterScreenState extends State<ShopOwnerRegisterScreen> {
   final List<String> _categories = [
     'Grocery',
     'Pharmacy',
-    'Stationery',
+    'Stationary',
     'Hardware',
-    'Clothing',
-    'Electronics',
-    'Food & Beverage',
-    'Other',
   ];
 
   final List<String> _districts = [
@@ -102,34 +99,37 @@ class _ShopOwnerRegisterScreenState extends State<ShopOwnerRegisterScreen> {
 
     setState(() => _isLoading = true);
 
-    // TODO: Replace with real API call
-    // await AuthService.register({
-    //   'name': _nameController.text,
-    //   'phone': _phoneController.text,
-    //   'email': _emailController.text,
-    //   'shop_name': _shopNameController.text,
-    //   'category': _selectedCategory,
-    //   'address': _addressController.text,
-    //   'district': _selectedDistrict,
-    //   'area': _areaController.text,
-    //   'password': _passwordController.text,
-    //   'role': 'shop_owner',
-    // });
-
-    await Future.delayed(const Duration(seconds: 1));
-    setState(() => _isLoading = false);
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Account created! Please sign in.'),
-          backgroundColor: AppColors.supplierGreen,
-        ),
+    try {
+      final result = await AuthService.registerShopOwner(
+        name: _nameController.text.trim(),
+        phone: _phoneController.text.trim(),
+        password: _passwordController.text,
+        confirmPassword: _confirmPasswordController.text,
+        shopName: _shopNameController.text.trim(),
+        shopCategory: _selectedCategory!,
+        shopAddress: _addressController.text.trim(),
+        district: _selectedDistrict!,
+        area: _areaController.text.trim(),
+        email: _emailController.text.trim(),
       );
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-      );
+
+      if (!mounted) return;
+
+      if (result['statusCode'] == 201) {
+        Navigator.pushReplacementNamed(context, '/shop-dashboard');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['error'] ?? 'Registration failed')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cannot connect to server')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

@@ -6,7 +6,7 @@
 // Calls GET /api/supplies?product=...&location=... for matches.
 
 import 'package:flutter/material.dart';
-import '../app_colors.dart';
+import '../../config/app_colors.dart';
 
 class ShopOwnerDashboard extends StatefulWidget {
   // Pass the shop name from the login response

@@ -5,7 +5,7 @@
 // Tapping a button navigates to that role's registration screen.
 
 import 'package:flutter/material.dart';
-import '../app_colors.dart';
+import '../../config/app_colors.dart';
 import 'shop_owner_register_screen.dart';
 import 'stockholder_register_screen.dart';
 import 'login_screen.dart';

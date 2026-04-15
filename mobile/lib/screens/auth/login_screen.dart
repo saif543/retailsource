@@ -1,10 +1,6 @@
-// lib/screens/auth/login_screen.dart
-//
-// The login screen. User enters email or phone + password.
-// On success, navigate to the correct dashboard based on user role.
-
 import 'package:flutter/material.dart';
-import '../app_colors.dart';
+import '../../config/app_colors.dart';
+import '../../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,27 +10,25 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // Controllers read what the user typed in each field
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  bool _obscurePassword = true; // toggles the eye icon
+  bool _obscurePassword = true;
   bool _rememberMe = false;
   bool _isLoading = false;
 
   @override
   void dispose() {
-    // Always dispose controllers to free memory
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   Future<void> _handleLogin() async {
-    final email = _emailController.text.trim();
+    final emailOrPhone = _emailController.text.trim();
     final password = _passwordController.text;
 
-    if (email.isEmpty || password.isEmpty) {
+    if (emailOrPhone.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all fields')),
       );
@@ -43,17 +37,37 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
 
-    // TODO: Replace this with your real API call to POST /api/auth/login
-    // Example:
-    // final response = await AuthService.login(email, password);
-    // if (response.success) { navigate to dashboard }
+    try {
+      final result = await AuthService.login(
+        emailOrPhone: emailOrPhone,
+        password: password,
+      );
 
-    await Future.delayed(const Duration(seconds: 1)); // simulate network
-    setState(() => _isLoading = false);
+      if (!mounted) return;
 
-    // After real login, check user.role and route accordingly:
-    // if (user.role == 'shop_owner') → ShopOwnerDashboard
-    // if (user.role == 'stockholder') → StockholderDashboard
+      if (result['statusCode'] == 200) {
+        final role = result['user']['role'];
+        if (role == 'shop_owner') {
+          Navigator.pushReplacementNamed(context, '/shop-dashboard');
+        } else if (role == 'stockholder') {
+          Navigator.pushReplacementNamed(context, '/stock-dashboard');
+        } else {
+          Navigator.pushReplacementNamed(context, '/admin-dashboard');
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['error'] ?? 'Login failed')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cannot connect to server')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -62,7 +76,6 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: AppColors.cardWhite,
       body: Column(
         children: [
-          // ── Blue top section ──────────────────────────────────────────────
           Container(
             width: double.infinity,
             height: MediaQuery.of(context).size.height * 0.38,
@@ -104,7 +117,6 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
 
-          // ── White form card ───────────────────────────────────────────────
           Expanded(
             child: Container(
               width: double.infinity,
@@ -118,7 +130,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Email / Phone field
                     _FieldLabel('Email or Phone'),
                     _InputField(
                       controller: _emailController,
@@ -129,7 +140,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     const SizedBox(height: 20),
 
-                    // Password field
                     _FieldLabel('Password'),
                     TextField(
                       controller: _passwordController,
@@ -172,7 +182,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     const SizedBox(height: 12),
 
-                    // Remember me + Forgot password
                     Row(
                       children: [
                         Checkbox(
@@ -188,7 +197,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 color: AppColors.textGrey, fontSize: 13)),
                         const Spacer(),
                         TextButton(
-                          onPressed: () {}, // TODO: forgot password
+                          onPressed: () {},
                           child: const Text(
                             'Forgot Password?',
                             style: TextStyle(
@@ -201,7 +210,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     const SizedBox(height: 24),
 
-                    // Sign In button
                     SizedBox(
                       width: double.infinity,
                       height: 52,
@@ -232,7 +240,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     const SizedBox(height: 24),
 
-                    // Sign Up link
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -262,8 +269,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
-
-// ── Small helper widgets used only in this file ───────────────────────────────
 
 class _FieldLabel extends StatelessWidget {
   final String text;
