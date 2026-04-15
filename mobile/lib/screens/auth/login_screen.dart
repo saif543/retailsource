@@ -11,7 +11,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _emailPhoneController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   String? _error;
@@ -26,7 +26,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final result = await AuthService.login(
-        email: _emailController.text.trim(),
+        emailOrPhone: _emailPhoneController.text.trim(),
         password: _passwordController.text,
       );
 
@@ -105,21 +105,19 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
 
-              // Email
+              // Email or Phone
               TextFormField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
+                controller: _emailPhoneController,
                 decoration: InputDecoration(
-                  labelText: 'Email',
-                  hintText: 'your@email.com',
+                  labelText: 'Email or Phone',
+                  hintText: 'your@email.com or 01XXXXXXXXX',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  prefixIcon: const Icon(Icons.email_outlined),
+                  prefixIcon: const Icon(Icons.person_outlined),
                 ),
                 validator: (val) {
-                  if (val == null || val.isEmpty) return 'Enter your email';
-                  if (!val.contains('@')) return 'Enter a valid email';
+                  if (val == null || val.isEmpty) return 'Enter email or phone';
                   return null;
                 },
               ),
@@ -193,7 +191,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _emailPhoneController.dispose();
     _passwordController.dispose();
     super.dispose();
   }

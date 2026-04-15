@@ -1,10 +1,17 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 class ApiConfig {
-  // Use 10.0.2.2 for Android emulator (maps to host machine localhost)
-  // Use localhost for web/desktop
-  static const String baseUrl = 'http://10.0.2.2:5000/api';
+  // Auto-detect: use localhost for web, 10.0.2.2 for Android emulator
+  static String get baseUrl {
+    if (kIsWeb) {
+      return 'http://localhost:5000/api';
+    }
+    return 'http://10.0.2.2:5000/api';
+  }
 
   // Auth endpoints
-  static const String register = '$baseUrl/auth/register';
-  static const String login = '$baseUrl/auth/login';
-  static const String me = '$baseUrl/auth/me';
+  static String get registerShopOwner => '$baseUrl/auth/register/shop-owner';
+  static String get registerStockholder => '$baseUrl/auth/register/stockholder';
+  static String get login => '$baseUrl/auth/login';
+  static String get me => '$baseUrl/auth/me';
 }

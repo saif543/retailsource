@@ -15,10 +15,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   final _shopNameController = TextEditingController();
+  final _addressController = TextEditingController();
 
   String _selectedRole = 'shop_owner';
   String _selectedArea = 'Mirpur';
+  String _selectedDistrict = 'Dhaka';
+  String _selectedCategory = 'Grocery';
+  List<String> _selectedCategories = [];
   bool _isLoading = false;
   String? _error;
 
@@ -33,8 +38,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
     'Farmgate',
   ];
 
+  final List<String> _districts = [
+    'Dhaka',
+    'Chittagong',
+    'Rajshahi',
+    'Khulna',
+    'Sylhet',
+    'Rangpur',
+    'Barisal',
+    'Mymensingh',
+  ];
+
+  final List<String> _categories = [
+    'Grocery',
+    'Pharmacy',
+    'Stationary',
+    'Hardware',
+  ];
+
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (_selectedRole == 'stockholder' && _selectedCategories.isEmpty) {
+      setState(() => _error = 'Select at least one product category');
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -42,20 +70,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
-      final result = await AuthService.register(
-        name: _nameController.text.trim(),
-        email: _emailController.text.trim(),
-        phone: _phoneController.text.trim(),
-        password: _passwordController.text,
-        role: _selectedRole,
-        shopName: _selectedRole == 'shop_owner'
-            ? _shopNameController.text.trim()
-            : null,
-        companyName: _selectedRole == 'stockholder'
-            ? _shopNameController.text.trim()
-            : null,
-        area: _selectedArea,
-      );
+      Map<String, dynamic> result;
+
+      if (_selectedRole == 'shop_owner') {
+        result = await AuthService.registerShopOwner(
+          name: _nameController.text.trim(),
+          phone: _phoneController.text.trim(),
+          password: _passwordController.text,
+          confirmPassword: _confirmPasswordController.text,
+          shopName: _shopNameController.text.trim(),
+          shopCategory: _selectedCategory,
+          shopAddress: _addressController.text.trim(),
+          district: _selectedDistrict,
+          area: _selectedArea,
+          email: _emailController.text.trim(),
+        );
+      } else {
+        result = await AuthService.registerStockholder(
+          name: _nameController.text.trim(),
+          phone: _phoneController.text.trim(),
+          password: _passwordController.text,
+          confirmPassword: _confirmPasswordController.text,
+          companyName: _shopNameController.text.trim(),
+          categories: _selectedCategories,
+          warehouseAddress: _addressController.text.trim(),
+          district: _selectedDistrict,
+          area: _selectedArea,
+          email: _emailController.text.trim(),
+        );
+      }
 
       if (!mounted) return;
 
@@ -215,6 +258,37 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 14),
 
+              // Phone
+              TextFormField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: InputDecoration(
+                  labelText: 'Phone Number *',
+                  hintText: '01XXXXXXXXX',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  prefixIcon: const Icon(Icons.phone_outlined),
+                ),
+                validator: (val) =>
+                    val == null || val.isEmpty ? 'Enter phone number' : null,
+              ),
+              const SizedBox(height: 14),
+
+              // Email (optional)
+              TextFormField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  labelText: 'Email (optional)',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  prefixIcon: const Icon(Icons.email_outlined),
+                ),
+              ),
+              const SizedBox(height: 14),
+
               // Shop/Company name
               TextFormField(
                 controller: _shopNameController,
@@ -232,56 +306,120 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 14),
 
-              // Email
-              TextFormField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+              // Shop Category dropdown (shop_owner only)
+              if (_selectedRole == 'shop_owner') ...[
+                DropdownButtonFormField<String>(
+                  value: _selectedCategory,
+                  decoration: InputDecoration(
+                    labelText: 'Shop Category',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    prefixIcon: const Icon(Icons.category_outlined),
                   ),
-                  prefixIcon: const Icon(Icons.email_outlined),
+                  items: _categories
+                      .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                      .toList(),
+                  onChanged: (val) =>
+                      setState(() => _selectedCategory = val!),
                 ),
-                validator: (val) {
-                  if (val == null || val.isEmpty) return 'Enter email';
-                  if (!val.contains('@')) return 'Enter valid email';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 14),
+                const SizedBox(height: 14),
+              ],
 
-              // Phone
-              TextFormField(
-                controller: _phoneController,
-                keyboardType: TextInputType.phone,
-                decoration: InputDecoration(
-                  labelText: 'Phone',
-                  hintText: '01XXXXXXXXX',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+              // Product Categories checkboxes (stockholder only)
+              if (_selectedRole == 'stockholder') ...[
+                const Text(
+                  'Product Categories *',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: AppColors.textDark,
                   ),
-                  prefixIcon: const Icon(Icons.phone_outlined),
                 ),
-                validator: (val) =>
-                    val == null || val.isEmpty ? 'Enter phone' : null,
-              ),
-              const SizedBox(height: 14),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 0,
+                  children: _categories.map((cat) {
+                    return SizedBox(
+                      width: MediaQuery.of(context).size.width / 2 - 40,
+                      child: CheckboxListTile(
+                        title: Text(cat, style: const TextStyle(fontSize: 14)),
+                        value: _selectedCategories.contains(cat),
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        controlAffinity: ListTileControlAffinity.leading,
+                        onChanged: (checked) {
+                          setState(() {
+                            if (checked == true) {
+                              _selectedCategories.add(cat);
+                            } else {
+                              _selectedCategories.remove(cat);
+                            }
+                          });
+                        },
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 14),
+              ],
 
-              // Area dropdown
-              DropdownButtonFormField<String>(
-                initialValue: _selectedArea,
+              // Address
+              TextFormField(
+                controller: _addressController,
                 decoration: InputDecoration(
-                  labelText: 'Area',
+                  labelText: _selectedRole == 'shop_owner'
+                      ? 'Shop Address'
+                      : 'Warehouse Address',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   prefixIcon: const Icon(Icons.location_on_outlined),
                 ),
-                items: _areas
-                    .map((a) => DropdownMenuItem(value: a, child: Text(a)))
-                    .toList(),
-                onChanged: (val) => setState(() => _selectedArea = val!),
+                validator: (val) =>
+                    val == null || val.isEmpty ? 'Enter address' : null,
+              ),
+              const SizedBox(height: 14),
+
+              // District & Area row
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedDistrict,
+                      decoration: InputDecoration(
+                        labelText: 'District',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      items: _districts
+                          .map((d) =>
+                              DropdownMenuItem(value: d, child: Text(d)))
+                          .toList(),
+                      onChanged: (val) =>
+                          setState(() => _selectedDistrict = val!),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedArea,
+                      decoration: InputDecoration(
+                        labelText: 'Area',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      items: _areas
+                          .map((a) =>
+                              DropdownMenuItem(value: a, child: Text(a)))
+                          .toList(),
+                      onChanged: (val) =>
+                          setState(() => _selectedArea = val!),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 14),
 
@@ -302,6 +440,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   return null;
                 },
               ),
+              const SizedBox(height: 14),
+
+              // Confirm Password
+              TextFormField(
+                controller: _confirmPasswordController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: 'Confirm Password',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  prefixIcon: const Icon(Icons.lock_outlined),
+                ),
+                validator: (val) {
+                  if (val == null || val.isEmpty) return 'Confirm password';
+                  if (val != _passwordController.text) return 'Passwords do not match';
+                  return null;
+                },
+              ),
               const SizedBox(height: 28),
 
               // Register button
@@ -311,7 +468,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _handleRegister,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryBlue,
+                    backgroundColor: _selectedRole == 'shop_owner'
+                        ? AppColors.primaryBlue
+                        : AppColors.primaryGreen,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -358,7 +517,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _emailController.dispose();
     _phoneController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     _shopNameController.dispose();
+    _addressController.dispose();
     super.dispose();
   }
 }
