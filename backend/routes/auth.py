@@ -11,28 +11,24 @@ def register_shop_owner():
     """Register a new shop owner."""
     data = request.get_json()
 
-    # Required fields
+    # Required fields (simplified)
     name = data.get('name')
     phone = data.get('phone')
     password = data.get('password')
-    confirm_password = data.get('confirm_password')
     shop_name = data.get('shop_name')
     shop_category = data.get('shop_category')
-    shop_address = data.get('shop_address')
-    district = data.get('district')
-    area = data.get('area')
 
-    # Optional fields
+    # Optional fields (added later via profile/address screens)
     email = data.get('email') or None
+    shop_address = data.get('shop_address') or None
+    district = data.get('district') or None
+    area = data.get('area') or None
     lat = data.get('lat')
     lng = data.get('lng')
 
     # Validation
-    if not all([name, phone, password, confirm_password, shop_name, shop_category, shop_address, district, area]):
-        return jsonify({'error': 'All required fields must be filled'}), 400
-
-    if password != confirm_password:
-        return jsonify({'error': 'Passwords do not match'}), 400
+    if not all([name, phone, password, shop_name, shop_category]):
+        return jsonify({'error': 'Name, phone, password, shop name and category are required'}), 400
 
     if len(password) < 6:
         return jsonify({'error': 'Password must be at least 6 characters'}), 400
@@ -97,31 +93,27 @@ def register_stockholder():
     """Register a new stockholder/supplier."""
     data = request.get_json()
 
-    # Required fields
+    # Required fields (simplified)
     name = data.get('name')
     phone = data.get('phone')
     password = data.get('password')
-    confirm_password = data.get('confirm_password')
     company_name = data.get('company_name')
-    categories = data.get('categories', [])  # list of category names like ['Grocery', 'Pharmacy']
-    warehouse_address = data.get('warehouse_address')
-    district = data.get('district')
-    area = data.get('area')
+    categories = data.get('categories', [])
 
     # Optional fields
     email = data.get('email') or None
+    warehouse_address = data.get('warehouse_address') or None
+    district = data.get('district') or None
+    area = data.get('area') or None
     lat = data.get('lat')
     lng = data.get('lng')
 
     # Validation
-    if not all([name, phone, password, confirm_password, company_name, warehouse_address, district, area]):
-        return jsonify({'error': 'All required fields must be filled'}), 400
+    if not all([name, phone, password, company_name]):
+        return jsonify({'error': 'Name, phone, password and company name are required'}), 400
 
     if not categories or len(categories) == 0:
         return jsonify({'error': 'Select at least one product category'}), 400
-
-    if password != confirm_password:
-        return jsonify({'error': 'Passwords do not match'}), 400
 
     if len(password) < 6:
         return jsonify({'error': 'Password must be at least 6 characters'}), 400
