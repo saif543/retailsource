@@ -3,6 +3,7 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from config import JWT_SECRET_KEY
 from routes.auth import auth_bp
+from routes.profile import profile_bp
 
 app = Flask(__name__)
 app.config['JWT_SECRET_KEY'] = JWT_SECRET_KEY
@@ -12,6 +13,7 @@ jwt = JWTManager(app)
 
 # Register blueprints
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
+app.register_blueprint(profile_bp, url_prefix='/api/profile')
 
 
 @app.route('/')
