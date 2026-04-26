@@ -17,6 +17,7 @@ class ApiConfig {
 
   // Profile
   static String get updateLocation => '$baseUrl/profile/location';
+<<<<<<< HEAD
 
   // Products
   static String get categories => '$baseUrl/products/categories';
@@ -29,4 +30,6 @@ class ApiConfig {
 
   // Shop dashboard
   static String get shopStats => '$baseUrl/shop/stats';
+=======
+>>>>>>> 15b0678d03781c17983fb616c22699d368855ae5
 }

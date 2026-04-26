@@ -4,9 +4,15 @@
 import 'package:flutter/material.dart';
 import '../../config/app_colors.dart';
 import '../../services/auth_service.dart';
+<<<<<<< HEAD
 import '../../services/demand_service.dart';
 import 'post_demand_screen.dart';
 import 'my_demands_screen.dart';
+=======
+import '../../services/location_service.dart';
+import '../../services/profile_service.dart';
+import '../shared/location_picker_screen.dart';
+>>>>>>> 15b0678d03781c17983fb616c22699d368855ae5
 
 class ShopOwnerDashboard extends StatefulWidget {
   final String shopName;
@@ -24,6 +30,7 @@ class ShopOwnerDashboard extends StatefulWidget {
 
 class _ShopOwnerDashboardState extends State<ShopOwnerDashboard> {
   int _currentTab = 0;
+<<<<<<< HEAD
   Map<String, int> _stats = {
     'open_demands': 0,
     'matched_demands': 0,
@@ -41,6 +48,8 @@ class _ShopOwnerDashboardState extends State<ShopOwnerDashboard> {
     if (!mounted) return;
     setState(() => _stats = s);
   }
+=======
+>>>>>>> 15b0678d03781c17983fb616c22699d368855ae5
 
   final List<Map<String, dynamic>> _recentOrders = [
     {
@@ -162,17 +171,29 @@ class _ShopOwnerDashboardState extends State<ShopOwnerDashboard> {
           Row(
             children: [
               Expanded(
+<<<<<<< HEAD
                 child: _statTile('${_stats['open_demands']}', 'Open\nDemands',
+=======
+                child: _statTile('5', 'Open\nDemands',
+>>>>>>> 15b0678d03781c17983fb616c22699d368855ae5
                     Icons.assignment_outlined),
               ),
               const SizedBox(width: 10),
               Expanded(
+<<<<<<< HEAD
                 child: _statTile('${_stats['matched_demands']}', 'Matched\nDemands',
+=======
+                child: _statTile('8', 'Suppliers\nFound',
+>>>>>>> 15b0678d03781c17983fb616c22699d368855ae5
                     Icons.handshake_outlined),
               ),
               const SizedBox(width: 10),
               Expanded(
+<<<<<<< HEAD
                 child: _statTile('${_stats['active_orders']}', 'Orders\nNow',
+=======
+                child: _statTile('2', 'Orders\nNow',
+>>>>>>> 15b0678d03781c17983fb616c22699d368855ae5
                     Icons.shopping_cart_outlined),
               ),
             ],
@@ -247,6 +268,7 @@ class _ShopOwnerDashboardState extends State<ShopOwnerDashboard> {
   }
 
   // ── Big "Post Demand" card ─────────────────────────────
+<<<<<<< HEAD
   Future<void> _openPostDemand() async {
     await Navigator.push(
       context,
@@ -261,11 +283,45 @@ class _ShopOwnerDashboardState extends State<ShopOwnerDashboard> {
       MaterialPageRoute(builder: (_) => const MyDemandsScreen()),
     );
     _loadStats();
+=======
+  Future<void> _testGps() async {
+    final result = await Navigator.push<LocationResult>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const LocationPickerScreen(title: 'Pick Your Shop Location'),
+      ),
+    );
+    if (result == null || !mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    final res = await ProfileService.saveLocation(result);
+    if (!mounted) return;
+    Navigator.pop(context); // close loader
+
+    final ok = res['statusCode'] == 200;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: ok ? Colors.green : Colors.red,
+        content: Text(ok
+            ? '✓ Location saved to your profile'
+            : 'Failed: ${res['error'] ?? 'unknown'}'),
+      ),
+    );
+>>>>>>> 15b0678d03781c17983fb616c22699d368855ae5
   }
 
   Widget _buildPostDemandCard() {
     return GestureDetector(
+<<<<<<< HEAD
       onTap: _openPostDemand,
+=======
+      onTap: _testGps,
+>>>>>>> 15b0678d03781c17983fb616c22699d368855ae5
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
@@ -319,11 +375,19 @@ class _ShopOwnerDashboardState extends State<ShopOwnerDashboard> {
 
   // ── Quick action grid ─────────────────────────────────
   Widget _buildQuickActions() {
+<<<<<<< HEAD
     final actions = <(String, IconData, Color, VoidCallback)>[
       ('Post\nDemand', Icons.add_shopping_cart_rounded, AppColors.primary, _openPostDemand),
       ('My\nDemands', Icons.list_alt_rounded, const Color(0xFF7B1FA2), _openMyDemands),
       ('My\nOrders', Icons.local_shipping_rounded, const Color(0xFF2E7D32), () {}),
       ('Rate &\nReview', Icons.star_rounded, const Color(0xFFE65100), () {}),
+=======
+    final actions = [
+      ('Browse\nSuppliers', Icons.store_rounded, AppColors.primary),
+      ('My\nDemands', Icons.list_alt_rounded, const Color(0xFF7B1FA2)),
+      ('My\nOrders', Icons.local_shipping_rounded, const Color(0xFF2E7D32)),
+      ('Rate &\nReview', Icons.star_rounded, const Color(0xFFE65100)),
+>>>>>>> 15b0678d03781c17983fb616c22699d368855ae5
     ];
     return GridView.count(
       crossAxisCount: 4,
@@ -333,15 +397,24 @@ class _ShopOwnerDashboardState extends State<ShopOwnerDashboard> {
       crossAxisSpacing: 10,
       childAspectRatio: 0.85,
       children: actions
+<<<<<<< HEAD
           .map((a) => _quickAction(a.$1, a.$2, a.$3, a.$4))
+=======
+          .map((a) => _quickAction(a.$1, a.$2, a.$3))
+>>>>>>> 15b0678d03781c17983fb616c22699d368855ae5
           .toList(),
     );
   }
 
+<<<<<<< HEAD
   Widget _quickAction(String label, IconData icon, Color color, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
+=======
+  Widget _quickAction(String label, IconData icon, Color color) {
+    return Container(
+>>>>>>> 15b0678d03781c17983fb616c22699d368855ae5
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
@@ -374,7 +447,10 @@ class _ShopOwnerDashboardState extends State<ShopOwnerDashboard> {
                   height: 1.2)),
         ],
       ),
+<<<<<<< HEAD
     ),
+=======
+>>>>>>> 15b0678d03781c17983fb616c22699d368855ae5
     );
   }
 
