@@ -9,29 +9,27 @@ class AuthService {
     required String name,
     required String phone,
     required String password,
-    required String confirmPassword,
     required String shopName,
     required String shopCategory,
-    required String shopAddress,
-    required String district,
-    required String area,
     String? email,
+    String? shopAddress,
+    String? district,
+    String? area,
     double? lat,
     double? lng,
   }) async {
-    final body = {
+    final body = <String, dynamic>{
       'name': name,
       'phone': phone,
       'password': password,
-      'confirm_password': confirmPassword,
       'shop_name': shopName,
       'shop_category': shopCategory,
-      'shop_address': shopAddress,
-      'district': district,
-      'area': area,
     };
 
     if (email != null && email.isNotEmpty) body['email'] = email;
+    if (shopAddress != null && shopAddress.isNotEmpty) body['shop_address'] = shopAddress;
+    if (district != null && district.isNotEmpty) body['district'] = district;
+    if (area != null && area.isNotEmpty) body['area'] = area;
     if (lat != null) body['lat'] = lat.toString();
     if (lng != null) body['lng'] = lng.toString();
 
@@ -56,29 +54,27 @@ class AuthService {
     required String name,
     required String phone,
     required String password,
-    required String confirmPassword,
     required String companyName,
     required List<String> categories,
-    required String warehouseAddress,
-    required String district,
-    required String area,
     String? email,
+    String? warehouseAddress,
+    String? district,
+    String? area,
     double? lat,
     double? lng,
   }) async {
-    final body = {
+    final body = <String, dynamic>{
       'name': name,
       'phone': phone,
       'password': password,
-      'confirm_password': confirmPassword,
       'company_name': companyName,
       'categories': categories,
-      'warehouse_address': warehouseAddress,
-      'district': district,
-      'area': area,
     };
 
     if (email != null && email.isNotEmpty) body['email'] = email;
+    if (warehouseAddress != null && warehouseAddress.isNotEmpty) body['warehouse_address'] = warehouseAddress;
+    if (district != null && district.isNotEmpty) body['district'] = district;
+    if (area != null && area.isNotEmpty) body['area'] = area;
     if (lat != null) body['lat'] = lat.toString();
     if (lng != null) body['lng'] = lng.toString();
 
