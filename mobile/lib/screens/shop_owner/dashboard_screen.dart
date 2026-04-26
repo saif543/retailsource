@@ -4,6 +4,9 @@
 import 'package:flutter/material.dart';
 import '../../config/app_colors.dart';
 import '../../services/auth_service.dart';
+import '../../services/location_service.dart';
+import '../../services/profile_service.dart';
+import '../shared/location_picker_screen.dart';
 
 class ShopOwnerDashboard extends StatefulWidget {
   final String shopName;
@@ -227,9 +230,39 @@ class _ShopOwnerDashboardState extends State<ShopOwnerDashboard> {
   }
 
   // ── Big "Post Demand" card ─────────────────────────────
+  Future<void> _testGps() async {
+    final result = await Navigator.push<LocationResult>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const LocationPickerScreen(title: 'Pick Your Shop Location'),
+      ),
+    );
+    if (result == null || !mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    final res = await ProfileService.saveLocation(result);
+    if (!mounted) return;
+    Navigator.pop(context); // close loader
+
+    final ok = res['statusCode'] == 200;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: ok ? Colors.green : Colors.red,
+        content: Text(ok
+            ? '✓ Location saved to your profile'
+            : 'Failed: ${res['error'] ?? 'unknown'}'),
+      ),
+    );
+  }
+
   Widget _buildPostDemandCard() {
     return GestureDetector(
-      onTap: () {},
+      onTap: _testGps,
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(

@@ -14,4 +14,7 @@ class ApiConfig {
   static String get registerStockholder => '$baseUrl/auth/register/stockholder';
   static String get login => '$baseUrl/auth/login';
   static String get me => '$baseUrl/auth/me';
+
+  // Profile
+  static String get updateLocation => '$baseUrl/profile/location';
 }
