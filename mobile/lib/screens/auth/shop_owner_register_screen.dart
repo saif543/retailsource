@@ -1,685 +1,342 @@
-// lib/screens/auth/shop_owner_register_screen.dart
-//
-// Registration form for Shop Owners.
-// Collects: full name, phone, email, shop name, category,
-//           address, district, area, password.
-// Submits to POST /api/auth/register
-
+import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../app_colors.dart';
+import 'package:flutter/services.dart';
+import '../../services/auth_service.dart';
 import 'login_screen.dart';
 
+const _c0  = Color(0xFF060D28);
+const _c1  = Color(0xFF0E2260);
+const _c2  = Color(0xFF1F4BD5);
+const _c3  = Color(0xFF6C3FE8);
+const _bg  = Color(0xFFF2F5FF);
+const _txt = Color(0xFF212121);
+const _sub = Color(0xFF757575);
+
+class _Tap extends StatefulWidget {
+  final Widget child; final VoidCallback onTap;
+  const _Tap({required this.child, required this.onTap});
+  @override State<_Tap> createState() => _TapS();
+}
+class _TapS extends State<_Tap> with SingleTickerProviderStateMixin {
+  late final _c = AnimationController(vsync: this,
+      duration: const Duration(milliseconds: 80),
+      reverseDuration: const Duration(milliseconds: 200));
+  late final _s = Tween<double>(begin: 1.0, end: 0.96)
+      .animate(CurvedAnimation(parent: _c, curve: Curves.easeInOut));
+  @override void dispose() { _c.dispose(); super.dispose(); }
+  @override
+  Widget build(BuildContext ctx) => GestureDetector(
+    onTapDown: (_) => _c.forward(),
+    onTapUp:   (_) { _c.reverse(); widget.onTap(); },
+    onTapCancel: () => _c.reverse(),
+    child: AnimatedBuilder(animation: _s,
+      builder: (_, ch) => Transform.scale(scale: _s.value, child: ch),
+      child: widget.child),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 class ShopOwnerRegisterScreen extends StatefulWidget {
   const ShopOwnerRegisterScreen({super.key});
-
-  @override
-  State<ShopOwnerRegisterScreen> createState() =>
-      _ShopOwnerRegisterScreenState();
+  @override State<ShopOwnerRegisterScreen> createState() => _SORS();
 }
 
-class _ShopOwnerRegisterScreenState extends State<ShopOwnerRegisterScreen> {
-  // One controller per text field
-  final _nameController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _shopNameController = TextEditingController();
-  final _addressController = TextEditingController();
-  final _areaController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
+class _SORS extends State<ShopOwnerRegisterScreen>
+    with SingleTickerProviderStateMixin {
+  final _nameCtrl  = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _shopCtrl  = TextEditingController();
+  final _pwCtrl    = TextEditingController();
+  String? _category;
+  bool _obscure  = true;
+  bool _loading  = false;
 
-  String? _selectedCategory;
-  String? _selectedDistrict;
-  bool _obscurePassword = true;
-  bool _obscureConfirm = true;
-  bool _agreedToTerms = false;
-  bool _isLoading = false;
+  late final _slideC = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 450));
+  late final _slideA = Tween<Offset>(
+      begin: const Offset(0, .06), end: Offset.zero)
+      .animate(CurvedAnimation(parent: _slideC, curve: Curves.easeOut));
 
-  // Options for dropdowns
-  final List<String> _categories = [
-    'Grocery',
-    'Pharmacy',
-    'Stationery',
-    'Hardware',
-    'Clothing',
-    'Electronics',
-    'Food & Beverage',
-    'Other',
-  ];
+  static const _cats = ['Grocery', 'Pharmacy', 'Stationary', 'Hardware'];
+  static const _catIcons = {
+    'Grocery':    Icons.shopping_basket_rounded,
+    'Pharmacy':   Icons.local_pharmacy_rounded,
+    'Stationary': Icons.edit_rounded,
+    'Hardware':   Icons.hardware_rounded,
+  };
 
-  final List<String> _districts = [
-    'Dhaka',
-    'Chattogram',
-    'Sylhet',
-    'Rajshahi',
-    'Khulna',
-    'Barishal',
-    'Mymensingh',
-    'Rangpur',
-  ];
-
+  @override
+  void initState() { super.initState(); _slideC.forward(); }
   @override
   void dispose() {
-    _nameController.dispose();
-    _phoneController.dispose();
-    _emailController.dispose();
-    _shopNameController.dispose();
-    _addressController.dispose();
-    _areaController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
-    super.dispose();
+    _nameCtrl.dispose(); _phoneCtrl.dispose();
+    _shopCtrl.dispose(); _pwCtrl.dispose();
+    _slideC.dispose(); super.dispose();
   }
 
-  Future<void> _handleRegister() async {
-    // Basic validation
-    if (_nameController.text.isEmpty ||
-        _phoneController.text.isEmpty ||
-        _shopNameController.text.isEmpty ||
-        _selectedCategory == null ||
-        _addressController.text.isEmpty ||
-        _selectedDistrict == null ||
-        _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all required fields')),
-      );
-      return;
+  Future<void> _register() async {
+    if (_nameCtrl.text.isEmpty || _phoneCtrl.text.isEmpty ||
+        _shopCtrl.text.isEmpty || _category == null || _pwCtrl.text.isEmpty) {
+      _err('Please fill in all fields'); return;
     }
-
-    if (_passwordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match')),
-      );
-      return;
+    if (_pwCtrl.text.length < 6) {
+      _err('Password must be at least 6 characters'); return;
     }
-
-    if (!_agreedToTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please agree to Terms of Service')),
+    HapticFeedback.mediumImpact();
+    setState(() => _loading = true);
+    try {
+      final r = await AuthService.registerShopOwner(
+        name: _nameCtrl.text.trim(),
+        phone: _phoneCtrl.text.trim(),
+        password: _pwCtrl.text,
+        shopName: _shopCtrl.text.trim(),
+        shopCategory: _category!,
       );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    // TODO: Replace with real API call
-    // await AuthService.register({
-    //   'name': _nameController.text,
-    //   'phone': _phoneController.text,
-    //   'email': _emailController.text,
-    //   'shop_name': _shopNameController.text,
-    //   'category': _selectedCategory,
-    //   'address': _addressController.text,
-    //   'district': _selectedDistrict,
-    //   'area': _areaController.text,
-    //   'password': _passwordController.text,
-    //   'role': 'shop_owner',
-    // });
-
-    await Future.delayed(const Duration(seconds: 1));
-    setState(() => _isLoading = false);
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Account created! Please sign in.'),
-          backgroundColor: AppColors.supplierGreen,
-        ),
-      );
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-      );
+      if (!mounted) return;
+      if (r['statusCode'] == 201) {
+        Navigator.pushReplacementNamed(context, '/shop-dashboard');
+      } else {
+        _err(r['error']?.toString() ?? 'Registration failed');
+      }
+    } catch (_) {
+      if (mounted) _err('Cannot connect to server');
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
+
+  void _err(String msg) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      backgroundColor: const Color(0xFF7B1C1C),
+      content: Text(msg, style: const TextStyle(fontWeight: FontWeight.w600))));
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          // ── Blue header ────────────────────────────────────────────────
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.only(
-              top: MediaQuery.of(context).padding.top + 12,
-              bottom: 20,
-              left: 16,
-              right: 16,
-            ),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppColors.primaryDark, AppColors.primary],
-              ),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    const Expanded(
-                      child: Column(
-                        children: [
-                          Text(
-                            'Shop Owner Registration',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Create your shop account',
-                            style:
-                                TextStyle(color: Colors.white70, fontSize: 13),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 48),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                CircleAvatar(
-                  radius: 30,
-                  backgroundColor: Colors.white24,
-                  child: const Icon(Icons.storefront,
-                      color: Colors.white, size: 30),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Fill in your details to get started',
-                  style: TextStyle(color: Colors.white70, fontSize: 13),
-                ),
-              ],
-            ),
+  Widget build(BuildContext context) => AnnotatedRegion<SystemUiOverlayStyle>(
+    value: SystemUiOverlayStyle.light,
+    child: Scaffold(
+      backgroundColor: _bg,
+      resizeToAvoidBottomInset: true,
+      body: Column(children: [
+        // ── header ───────────────────────────────────────────────────────
+        Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+                colors: [_c0, _c1, _c2, _c3],
+                stops: [0.0, 0.35, 0.7, 1.0],
+                begin: Alignment.topLeft, end: Alignment.bottomRight),
           ),
-
-          // ── Scrollable form ────────────────────────────────────────────
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  // Personal Information card
-                  _SectionCard(
-                    icon: Icons.person_outline,
-                    title: 'Personal Information',
-                    children: [
-                      _FormField(
-                        label: 'Full Name',
-                        required: true,
-                        child: _buildTextField(
-                            _nameController, 'Enter your full name'),
-                      ),
-                      _FormField(
-                        label: 'Phone Number',
-                        required: true,
-                        child: _buildTextField(
-                          _phoneController,
-                          '+880 1XXX XXXXXX',
-                          type: TextInputType.phone,
+          child: SafeArea(bottom: false,
+            child: Stack(children: [
+              Positioned(top: -30, right: -40, child: _blob(160, Colors.white, .04)),
+              Positioned(top: 20, right: 60,   child: _blob(50, _c3, .3)),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 8, 20, 28),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    _Tap(onTap: () => Navigator.pop(context),
+                      child: Container(width: 42, height: 42,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(.14),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.white.withOpacity(.25)),
                         ),
-                      ),
-                      _FormField(
-                        label: 'Email Address',
-                        child: _buildTextField(
-                          _emailController,
-                          'Enter your email (optional)',
-                          type: TextInputType.emailAddress,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Shop Information card
-                  _SectionCard(
-                    icon: Icons.storefront_outlined,
-                    title: 'Shop Information',
-                    children: [
-                      _FormField(
-                        label: 'Shop Name',
-                        required: true,
-                        child: _buildTextField(
-                            _shopNameController, 'Enter your shop name'),
-                      ),
-                      _FormField(
-                        label: 'Shop Category',
-                        required: true,
-                        child: _buildDropdown(
-                          value: _selectedCategory,
-                          hint: 'Select shop category',
-                          items: _categories,
-                          onChanged: (v) =>
-                              setState(() => _selectedCategory = v),
-                        ),
-                      ),
-                      _FormField(
-                        label: 'Shop Address',
-                        required: true,
-                        child: TextField(
-                          controller: _addressController,
-                          maxLines: 3,
-                          decoration: _inputDecoration(
-                              'Enter your complete shop address'),
-                        ),
-                      ),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _FormField(
-                              label: 'District',
-                              required: true,
-                              child: _buildDropdown(
-                                value: _selectedDistrict,
-                                hint: 'Select district',
-                                items: _districts,
-                                onChanged: (v) =>
-                                    setState(() => _selectedDistrict = v),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _FormField(
-                              label: 'Area/Thana',
-                              required: true,
-                              child: _buildTextField(
-                                  _areaController, 'Enter area name'),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      // Use Current Location button
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            // TODO: use geolocator package to fill address
-                          },
-                          icon: const Icon(Icons.location_on_outlined,
-                              color: AppColors.primary),
-                          label: const Text(
-                            'Use Current Location',
-                            style: TextStyle(color: AppColors.primary),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: AppColors.primary),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10)),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Security card
-                  _SectionCard(
-                    icon: Icons.lock_outline,
-                    title: 'Security',
-                    children: [
-                      _FormField(
-                        label: 'Password',
-                        required: true,
-                        sublabel: 'At least 6 characters',
-                        child: _buildPasswordField(
-                          _passwordController,
-                          'Create a strong password',
-                          _obscurePassword,
-                          () => setState(
-                              () => _obscurePassword = !_obscurePassword),
-                        ),
-                      ),
-                      _FormField(
-                        label: 'Confirm Password',
-                        required: true,
-                        child: _buildPasswordField(
-                          _confirmPasswordController,
-                          'Confirm your password',
-                          _obscureConfirm,
-                          () => setState(
-                              () => _obscureConfirm = !_obscureConfirm),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Terms checkbox
-                  Row(
-                    children: [
-                      Checkbox(
-                        value: _agreedToTerms,
-                        onChanged: (v) =>
-                            setState(() => _agreedToTerms = v ?? false),
-                        activeColor: AppColors.primary,
-                      ),
-                      Expanded(
-                        child: RichText(
-                          text: const TextSpan(
-                            style: TextStyle(
-                                color: AppColors.textGrey, fontSize: 13),
-                            children: [
-                              TextSpan(text: 'I agree to the '),
-                              TextSpan(
-                                text: 'Terms of Service',
-                                style: TextStyle(
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.w600),
-                              ),
-                              TextSpan(text: ' and '),
-                              TextSpan(
-                                text: 'Privacy Policy',
-                                style: TextStyle(
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.w600),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Create Account button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton.icon(
-                      onPressed: _isLoading ? null : _handleRegister,
-                      icon: _isLoading
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                  color: Colors.white, strokeWidth: 2),
-                            )
-                          : const Icon(Icons.person_add),
-                      label: Text(
-                        _isLoading ? 'Creating...' : 'Create Shop Account',
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w700),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        elevation: 0,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // What happens next info box
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
+                        child: const Icon(Icons.arrow_back_ios_new_rounded,
+                            color: Colors.white, size: 17))),
+                    const SizedBox(width: 14),
+                    const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Shop Owner Sign Up', style: TextStyle(color: Colors.white,
+                          fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -.4)),
+                      SizedBox(height: 2),
+                      Text('Create your account to get started',
+                          style: TextStyle(color: Colors.white54, fontSize: 12.5)),
+                    ])),
+                  ]),
+                  const SizedBox(height: 20),
+                  Center(child: Container(width: 68, height: 68,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE8F5E9),
-                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.white.withOpacity(.18),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white.withOpacity(.3), width: 2),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Row(
-                          children: [
-                            Icon(Icons.info_outline,
-                                color: AppColors.supplierGreen, size: 18),
-                            SizedBox(width: 8),
-                            Text(
-                              'What happens next?',
-                              style: TextStyle(
-                                color: AppColors.supplierGreen,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          '• We\'ll verify your phone number with OTP\n'
-                          '• You can start posting product demands immediately\n'
-                          '• Get matched with nearby suppliers automatically',
-                          style: TextStyle(
-                              color: Color(0xFF2E7D32), fontSize: 13, height: 1.6),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Sign In link
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text('Already have an account? ',
-                          style: TextStyle(
-                              color: AppColors.textGrey, fontSize: 14)),
-                      GestureDetector(
-                        onTap: () => Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const LoginScreen()),
-                        ),
-                        child: const Text(
-                          'Sign In',
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 24),
-                ],
+                    child: const Icon(Icons.storefront_rounded,
+                        color: Colors.white, size: 34))),
+                ]),
               ),
-            ),
+            ]),
           ),
-        ],
-      ),
-    );
-  }
-
-  // ── Field builders ─────────────────────────────────────────────────────────
-
-  InputDecoration _inputDecoration(String hint) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: const TextStyle(color: AppColors.textGrey, fontSize: 14),
-      filled: true,
-      fillColor: Colors.white,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppColors.inputBorder),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppColors.inputBorder),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-    );
-  }
-
-  Widget _buildTextField(TextEditingController c, String hint,
-      {TextInputType type = TextInputType.text}) {
-    return TextField(
-        controller: c,
-        keyboardType: type,
-        decoration: _inputDecoration(hint));
-  }
-
-  Widget _buildPasswordField(TextEditingController c, String hint, bool obscure,
-      VoidCallback toggle) {
-    return TextField(
-      controller: c,
-      obscureText: obscure,
-      decoration: _inputDecoration(hint).copyWith(
-        suffixIcon: IconButton(
-          icon: Icon(
-            obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-            color: AppColors.textGrey,
-          ),
-          onPressed: toggle,
         ),
-      ),
-    );
-  }
 
-  Widget _buildDropdown({
-    required String? value,
-    required String hint,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
-  }) {
-    return DropdownButtonFormField<String>(
-      value: value,
-      hint: Text(hint,
-          style: const TextStyle(color: AppColors.textGrey, fontSize: 14)),
-      items: items
-          .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-          .toList(),
-      onChanged: onChanged,
-      decoration: InputDecoration(
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.inputBorder),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.inputBorder),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-        ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-      ),
-    );
-  }
-}
+        // ── form ─────────────────────────────────────────────────────────
+        Expanded(
+          child: SlideTransition(
+            position: _slideA,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                _card(child: Column(children: [
+                  _label('Full Name'),
+                  _field(_nameCtrl, 'e.g. Karim Uddin', Icons.person_outline_rounded),
+                  const SizedBox(height: 14),
+                  _label('Phone Number'),
+                  _field(_phoneCtrl, '01XXXXXXXXX',
+                      Icons.phone_outlined, type: TextInputType.phone),
+                  const SizedBox(height: 14),
+                  _label('Shop Name'),
+                  _field(_shopCtrl, 'e.g. Al-Amin Grocery', Icons.store_outlined),
+                ])),
+                const SizedBox(height: 16),
 
-// ── Reusable section card ─────────────────────────────────────────────────────
-class _SectionCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final List<Widget> children;
+                _card(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  _label('What do you sell?'),
+                  const SizedBox(height: 12),
+                  Wrap(spacing: 10, runSpacing: 10,
+                    children: _cats.map((cat) {
+                      final sel = _category == cat;
+                      return _Tap(onTap: () {
+                        HapticFeedback.lightImpact();
+                        setState(() => _category = sel ? null : cat);
+                      }, child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                        decoration: BoxDecoration(
+                          gradient: sel ? const LinearGradient(colors: [_c1, _c3]) : null,
+                          color: sel ? null : const Color(0xFFEEF0FA),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                              color: sel ? Colors.transparent : const Color(0xFFD8DCF0)),
+                          boxShadow: sel ? [BoxShadow(color: _c2.withOpacity(.3),
+                              blurRadius: 8, offset: const Offset(0, 3))] : null,
+                        ),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(_catIcons[cat]!,
+                              color: sel ? Colors.white : _sub, size: 16),
+                          const SizedBox(width: 7),
+                          Text(cat, style: TextStyle(
+                              color: sel ? Colors.white : _txt,
+                              fontSize: 13.5, fontWeight: FontWeight.w700)),
+                        ]),
+                      ));
+                    }).toList()),
+                ])),
+                const SizedBox(height: 16),
 
-  const _SectionCard(
-      {required this.icon, required this.title, required this.children});
+                _card(child: Column(children: [
+                  _label('Password'),
+                  _obscureField(),
+                  const SizedBox(height: 6),
+                  const Align(alignment: Alignment.centerLeft,
+                    child: Text('Minimum 6 characters',
+                        style: TextStyle(color: _sub, fontSize: 11.5))),
+                ])),
+                const SizedBox(height: 28),
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2))
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: AppColors.primary, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textDark,
+                // register button
+                _Tap(onTap: _loading ? () {} : _register,
+                  child: Container(
+                    width: double.infinity, height: 56,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                          colors: [_c0, _c2, _c3],
+                          stops: [0.0, 0.5, 1.0],
+                          begin: Alignment.topLeft, end: Alignment.bottomRight),
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: [BoxShadow(color: _c2.withOpacity(.45),
+                          blurRadius: 22, spreadRadius: -2, offset: const Offset(0, 10))],
+                    ),
+                    child: Stack(children: [
+                      Positioned.fill(child: ClipRRect(
+                        borderRadius: BorderRadius.circular(18),
+                        child: Align(alignment: Alignment.topCenter,
+                          child: FractionallySizedBox(heightFactor: .45, widthFactor: 1,
+                            child: Container(decoration: BoxDecoration(
+                              gradient: LinearGradient(begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [Colors.white.withOpacity(.18), Colors.transparent]))))))),
+                      Center(child: _loading
+                          ? const SizedBox(width: 22, height: 22,
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2.5))
+                          : const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                              Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                              SizedBox(width: 10),
+                              Text('Create Account', style: TextStyle(color: Colors.white,
+                                  fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: .2)),
+                            ])),
+                    ]),
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          ...children,
-        ],
-      ),
-    );
-  }
-}
 
-// ── Form field with label ─────────────────────────────────────────────────────
-class _FormField extends StatelessWidget {
-  final String label;
-  final bool required;
-  final String? sublabel;
-  final Widget child;
-
-  const _FormField({
-    required this.label,
-    this.required = false,
-    this.sublabel,
-    required this.child,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          RichText(
-            text: TextSpan(
-              style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textDark),
-              children: [
-                TextSpan(text: label),
-                if (required)
-                  const TextSpan(
-                      text: ' *', style: TextStyle(color: Colors.red)),
-              ],
+                const SizedBox(height: 20),
+                Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  const Text('Already have an account? ',
+                      style: TextStyle(color: _sub, fontSize: 14)),
+                  _Tap(onTap: () => Navigator.pushReplacement(context,
+                      MaterialPageRoute(builder: (_) => const LoginScreen())),
+                    child: const Text('Sign In', style: TextStyle(color: _c2,
+                        fontSize: 14, fontWeight: FontWeight.w800))),
+                ]),
+              ]),
             ),
           ),
-          const SizedBox(height: 6),
-          child,
-          if (sublabel != null) ...[
-            const SizedBox(height: 4),
-            Text(sublabel!,
-                style: const TextStyle(
-                    color: AppColors.textGrey, fontSize: 11)),
-          ],
-        ],
+        ),
+      ]),
+    ),
+  );
+
+  Widget _card({required Widget child}) => Container(
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(22),
+      boxShadow: [
+        BoxShadow(color: _c1.withOpacity(.07), blurRadius: 20, offset: const Offset(0, 6)),
+        BoxShadow(color: Colors.black.withOpacity(.03), blurRadius: 4, offset: const Offset(0, 2)),
+      ],
+    ),
+    child: child,
+  );
+
+  Widget _label(String t) => Padding(
+    padding: const EdgeInsets.only(bottom: 8, left: 2),
+    child: Text(t, style: const TextStyle(fontSize: 13,
+        fontWeight: FontWeight.w800, color: _txt)),
+  );
+
+  Widget _field(TextEditingController c, String hint, IconData icon,
+      {TextInputType type = TextInputType.text}) => TextField(
+    controller: c, keyboardType: type,
+    style: const TextStyle(fontSize: 14.5, color: _txt, fontWeight: FontWeight.w600),
+    decoration: _deco(hint, icon),
+  );
+
+  Widget _obscureField() => StatefulBuilder(
+    builder: (_, set) => TextField(
+      controller: _pwCtrl, obscureText: _obscure,
+      style: const TextStyle(fontSize: 14.5, color: _txt, fontWeight: FontWeight.w600),
+      decoration: _deco('Create a password', Icons.lock_outline_rounded).copyWith(
+        suffixIcon: IconButton(
+          icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+              color: _sub, size: 20),
+          onPressed: () => setState(() => _obscure = !_obscure),
+        ),
       ),
-    );
-  }
+    ),
+  );
+
+  InputDecoration _deco(String hint, IconData icon) => InputDecoration(
+    hintText: hint,
+    hintStyle: const TextStyle(color: Color(0xFFBBC0D4), fontSize: 14),
+    prefixIcon: Icon(icon, color: _sub, size: 20),
+    filled: true, fillColor: _bg,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none),
+    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFE4E8F5))),
+    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: _c2.withOpacity(.5), width: 1.5)),
+  );
+
+  Widget _blob(double sz, Color c, double op) =>
+      Container(width: sz, height: sz,
+          decoration: BoxDecoration(shape: BoxShape.circle, color: c.withOpacity(op)));
 }

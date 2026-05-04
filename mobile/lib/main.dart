@@ -3,7 +3,8 @@ import 'config/app_colors.dart';
 import 'services/auth_service.dart';
 import 'screens/auth/welcome_screen.dart';
 import 'screens/auth/login_screen.dart';
-import 'screens/auth/register_screen.dart';
+import 'screens/auth/shop_owner_register_screen.dart';
+import 'screens/auth/stockholder_register_screen.dart';
 import 'screens/shop_owner/dashboard_screen.dart';
 import 'screens/stockholder/dashboard_screen.dart';
 import 'screens/shared/admin_dashboard_screen.dart';
@@ -21,15 +22,16 @@ class SupplyLinkApp extends StatelessWidget {
       title: 'SupplyLink',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primaryColor: AppColors.primaryBlue,
-        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primaryBlue),
+        primaryColor: AppColors.primary,
+        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
         scaffoldBackgroundColor: AppColors.bgWhite,
       ),
       home: const SplashRouter(),
       routes: {
         '/welcome': (context) => const WelcomeScreen(),
         '/login': (context) => const LoginScreen(),
-        '/register': (context) => const RegisterScreen(),
+        '/register-shop': (context) => const ShopOwnerRegisterScreen(),
+        '/register-stock': (context) => const StockholderRegisterScreen(),
         '/shop-dashboard': (context) => const ShopOwnerDashboard(),
         '/stock-dashboard': (context) => const StockholderDashboard(),
         '/admin-dashboard': (context) => const AdminDashboard(),
