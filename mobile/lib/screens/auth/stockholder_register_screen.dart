@@ -1,316 +1,358 @@
-// Simple stockholder registration: name, phone, password, company, categories.
-// Warehouse address added later when posting stock.
-
+import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../../config/app_colors.dart';
+import 'package:flutter/services.dart';
 import '../../services/auth_service.dart';
 import 'login_screen.dart';
 
-class StockholderRegisterScreen extends StatefulWidget {
-  const StockholderRegisterScreen({super.key});
+const _sg0 = Color(0xFF012B1E);
+const _sg1 = Color(0xFF054F3A);
+const _sg2 = Color(0xFF0A7A56);
+const _sg3 = Color(0xFF0FBB84);
+const _bg  = Color(0xFFF0FBF6);
+const _txt = Color(0xFF212121);
+const _sub = Color(0xFF757575);
 
+class _Tap extends StatefulWidget {
+  final Widget child; final VoidCallback onTap;
+  const _Tap({required this.child, required this.onTap});
+  @override State<_Tap> createState() => _TapS();
+}
+class _TapS extends State<_Tap> with SingleTickerProviderStateMixin {
+  late final _c = AnimationController(vsync: this,
+      duration: const Duration(milliseconds: 80),
+      reverseDuration: const Duration(milliseconds: 200));
+  late final _s = Tween<double>(begin: 1.0, end: 0.96)
+      .animate(CurvedAnimation(parent: _c, curve: Curves.easeInOut));
+  @override void dispose() { _c.dispose(); super.dispose(); }
   @override
-  State<StockholderRegisterScreen> createState() =>
-      _StockholderRegisterScreenState();
+  Widget build(BuildContext ctx) => GestureDetector(
+    onTapDown: (_) => _c.forward(),
+    onTapUp:   (_) { _c.reverse(); widget.onTap(); },
+    onTapCancel: () => _c.reverse(),
+    child: AnimatedBuilder(animation: _s,
+      builder: (_, ch) => Transform.scale(scale: _s.value, child: ch),
+      child: widget.child),
+  );
 }
 
-class _StockholderRegisterScreenState
-    extends State<StockholderRegisterScreen> {
-  final _nameController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _companyController = TextEditingController();
-  final _passwordController = TextEditingController();
+// ─────────────────────────────────────────────────────────────────────────────
+class StockholderRegisterScreen extends StatefulWidget {
+  const StockholderRegisterScreen({super.key});
+  @override State<StockholderRegisterScreen> createState() => _StRS();
+}
 
-  bool _obscurePassword = true;
-  bool _isLoading = false;
+class _StRS extends State<StockholderRegisterScreen>
+    with SingleTickerProviderStateMixin {
+  final _nameCtrl    = TextEditingController();
+  final _phoneCtrl   = TextEditingController();
+  final _companyCtrl = TextEditingController();
+  final _pwCtrl      = TextEditingController();
+  bool _obscure  = true;
+  bool _loading  = false;
 
-  final Map<String, bool> _categories = {
+  final Map<String, bool> _cats = {
     'Grocery': false,
     'Pharmacy': false,
     'Stationary': false,
     'Hardware': false,
   };
+  static const _catIcons = {
+    'Grocery':    Icons.shopping_basket_rounded,
+    'Pharmacy':   Icons.local_pharmacy_rounded,
+    'Stationary': Icons.edit_rounded,
+    'Hardware':   Icons.hardware_rounded,
+  };
 
-  List<String> get _selectedCategories =>
-      _categories.entries.where((e) => e.value).map((e) => e.key).toList();
+  List<String> get _selected =>
+      _cats.entries.where((e) => e.value).map((e) => e.key).toList();
 
+  late final _slideC = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 450));
+  late final _slideA = Tween<Offset>(
+      begin: const Offset(0, .06), end: Offset.zero)
+      .animate(CurvedAnimation(parent: _slideC, curve: Curves.easeOut));
+
+  @override
+  void initState() { super.initState(); _slideC.forward(); }
   @override
   void dispose() {
-    _nameController.dispose();
-    _phoneController.dispose();
-    _companyController.dispose();
-    _passwordController.dispose();
-    super.dispose();
+    _nameCtrl.dispose(); _phoneCtrl.dispose();
+    _companyCtrl.dispose(); _pwCtrl.dispose();
+    _slideC.dispose(); super.dispose();
   }
 
-  Future<void> _handleRegister() async {
-    if (_nameController.text.isEmpty ||
-        _phoneController.text.isEmpty ||
-        _companyController.text.isEmpty ||
-        _selectedCategories.isEmpty ||
-        _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Fill all fields and pick at least one category')),
-      );
-      return;
+  Future<void> _register() async {
+    if (_nameCtrl.text.isEmpty || _phoneCtrl.text.isEmpty ||
+        _companyCtrl.text.isEmpty || _selected.isEmpty || _pwCtrl.text.isEmpty) {
+      _err('Fill all fields and pick at least one category'); return;
     }
-
-    if (_passwordController.text.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password must be at least 6 characters')),
-      );
-      return;
+    if (_pwCtrl.text.length < 6) {
+      _err('Password must be at least 6 characters'); return;
     }
-
-    setState(() => _isLoading = true);
-
+    HapticFeedback.mediumImpact();
+    setState(() => _loading = true);
     try {
-      final result = await AuthService.registerStockholder(
-        name: _nameController.text.trim(),
-        phone: _phoneController.text.trim(),
-        password: _passwordController.text,
-        companyName: _companyController.text.trim(),
-        categories: _selectedCategories,
+      final r = await AuthService.registerStockholder(
+        name: _nameCtrl.text.trim(),
+        phone: _phoneCtrl.text.trim(),
+        password: _pwCtrl.text,
+        companyName: _companyCtrl.text.trim(),
+        categories: _selected,
       );
-
       if (!mounted) return;
-
-      if (result['statusCode'] == 201) {
+      if (r['statusCode'] == 201) {
         Navigator.pushReplacementNamed(context, '/stock-dashboard');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['error'] ?? 'Registration failed')),
-        );
+        _err(r['error']?.toString() ?? 'Registration failed');
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cannot connect to server')),
-        );
-      }
+    } catch (_) {
+      if (mounted) _err('Cannot connect to server');
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
+  void _err(String msg) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      backgroundColor: const Color(0xFF7B1C1C),
+      content: Text(msg, style: const TextStyle(fontWeight: FontWeight.w600))));
+
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.only(
-              top: MediaQuery.of(context).padding.top + 12,
-              bottom: 20,
-              left: 16,
-              right: 16,
-            ),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF1B5E20), AppColors.supplierGreen],
-              ),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    const Expanded(
-                      child: Text(
-                        'Supplier Sign Up',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 48),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                const CircleAvatar(
-                  radius: 30,
-                  backgroundColor: Colors.white24,
-                  child: Icon(Icons.local_shipping,
-                      color: Colors.white, size: 30),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Quick sign up — add warehouse later',
-                  style: TextStyle(color: Colors.white70, fontSize: 13),
-                ),
-              ],
-            ),
+  Widget build(BuildContext context) => AnnotatedRegion<SystemUiOverlayStyle>(
+    value: SystemUiOverlayStyle.light,
+    child: Scaffold(
+      backgroundColor: _bg,
+      resizeToAvoidBottomInset: true,
+      body: Column(children: [
+        // ── green header ──────────────────────────────────────────────────
+        Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+                colors: [_sg0, _sg1, _sg2, _sg3],
+                stops: [0.0, 0.35, 0.7, 1.0],
+                begin: Alignment.topLeft, end: Alignment.bottomRight),
           ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  _buildLabel('Your Name'),
-                  _buildTextField(_nameController, 'e.g. Rahim Mia'),
-                  const SizedBox(height: 14),
-
-                  _buildLabel('Phone Number'),
-                  _buildTextField(_phoneController, '01XXXXXXXXX',
-                      type: TextInputType.phone),
-                  const SizedBox(height: 14),
-
-                  _buildLabel('Company / Shop Name'),
-                  _buildTextField(_companyController, 'e.g. Rahim Traders'),
-                  const SizedBox(height: 14),
-
-                  _buildLabel('What do you supply?'),
-                  const SizedBox(height: 4),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                      border:
-                          Border.all(color: AppColors.inputBorder),
-                    ),
-                    child: Column(
-                      children: _categories.keys.map((cat) {
-                        return CheckboxListTile(
-                          dense: true,
-                          contentPadding:
-                              const EdgeInsets.symmetric(horizontal: 8),
-                          title: Text(cat),
-                          value: _categories[cat],
-                          activeColor: AppColors.supplierGreen,
-                          onChanged: (v) =>
-                              setState(() => _categories[cat] = v ?? false),
-                          controlAffinity:
-                              ListTileControlAffinity.leading,
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-
-                  _buildLabel('Password'),
-                  _buildPasswordField(),
-                  const SizedBox(height: 6),
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text('At least 6 characters',
-                        style: TextStyle(
-                            color: AppColors.textGrey, fontSize: 11)),
-                  ),
-                  const SizedBox(height: 24),
-
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _handleRegister,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.supplierGreen,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        elevation: 0,
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                  color: Colors.white, strokeWidth: 2))
-                          : const Text('Create Account',
-                              style: TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.w700)),
-                    ),
-                  ),
+          child: SafeArea(bottom: false,
+            child: Stack(children: [
+              Positioned(top: -30, right: -40, child: _blob(160, Colors.white, .04)),
+              Positioned(top: 20, right: 60,   child: _blob(50, _sg3, .3)),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 8, 20, 28),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    _Tap(onTap: () => Navigator.pop(context),
+                      child: Container(width: 42, height: 42,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(.14),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.white.withOpacity(.25)),
+                        ),
+                        child: const Icon(Icons.arrow_back_ios_new_rounded,
+                            color: Colors.white, size: 17))),
+                    const SizedBox(width: 14),
+                    const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Stockholder Sign Up', style: TextStyle(color: Colors.white,
+                          fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -.4)),
+                      SizedBox(height: 2),
+                      Text('Join as a supplier on SupplyLink',
+                          style: TextStyle(color: Colors.white54, fontSize: 12.5)),
+                    ])),
+                  ]),
                   const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text('Already have an account? ',
-                          style: TextStyle(color: AppColors.textGrey)),
-                      GestureDetector(
-                        onTap: () => Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const LoginScreen()),
-                        ),
-                        child: const Text('Sign In',
-                            style: TextStyle(
-                              color: AppColors.supplierGreen,
-                              fontWeight: FontWeight.w600,
-                            )),
-                      ),
-                    ],
-                  ),
-                ],
+                  Center(child: Container(width: 68, height: 68,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(.18),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white.withOpacity(.3), width: 2),
+                    ),
+                    child: const Icon(Icons.warehouse_rounded,
+                        color: Colors.white, size: 34))),
+                ]),
               ),
+            ]),
+          ),
+        ),
+
+        // ── form ─────────────────────────────────────────────────────────
+        Expanded(
+          child: SlideTransition(
+            position: _slideA,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                _card(child: Column(children: [
+                  _label('Full Name'),
+                  _field(_nameCtrl, 'e.g. Rahim Mia', Icons.person_outline_rounded),
+                  const SizedBox(height: 14),
+                  _label('Phone Number'),
+                  _field(_phoneCtrl, '01XXXXXXXXX',
+                      Icons.phone_outlined, type: TextInputType.phone),
+                  const SizedBox(height: 14),
+                  _label('Company / Business Name'),
+                  _field(_companyCtrl, 'e.g. Rahim Traders',
+                      Icons.business_rounded),
+                ])),
+                const SizedBox(height: 16),
+
+                _card(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  _label('What do you supply?'),
+                  const Padding(
+                    padding: EdgeInsets.only(left: 2, bottom: 12),
+                    child: Text('Select all that apply',
+                        style: TextStyle(color: _sub, fontSize: 12)),
+                  ),
+                  Wrap(spacing: 10, runSpacing: 10,
+                    children: _cats.keys.map((cat) {
+                      final sel = _cats[cat]!;
+                      return _Tap(onTap: () {
+                        HapticFeedback.lightImpact();
+                        setState(() => _cats[cat] = !sel);
+                      }, child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                        decoration: BoxDecoration(
+                          gradient: sel ? const LinearGradient(colors: [_sg1, _sg3]) : null,
+                          color: sel ? null : const Color(0xFFE8F5EE),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                              color: sel ? Colors.transparent : const Color(0xFFC5E8D5)),
+                          boxShadow: sel ? [BoxShadow(color: _sg3.withOpacity(.3),
+                              blurRadius: 8, offset: const Offset(0, 3))] : null,
+                        ),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(_catIcons[cat]!,
+                              color: sel ? Colors.white : _sg2, size: 16),
+                          const SizedBox(width: 7),
+                          Text(cat, style: TextStyle(
+                              color: sel ? Colors.white : _txt,
+                              fontSize: 13.5, fontWeight: FontWeight.w700)),
+                          if (sel) ...[
+                            const SizedBox(width: 6),
+                            const Icon(Icons.check_rounded, color: Colors.white, size: 14),
+                          ],
+                        ]),
+                      ));
+                    }).toList()),
+                ])),
+                const SizedBox(height: 16),
+
+                _card(child: Column(children: [
+                  _label('Password'),
+                  _obscureField(),
+                  const SizedBox(height: 6),
+                  const Align(alignment: Alignment.centerLeft,
+                    child: Text('Minimum 6 characters',
+                        style: TextStyle(color: _sub, fontSize: 11.5))),
+                ])),
+                const SizedBox(height: 28),
+
+                // register button
+                _Tap(onTap: _loading ? () {} : _register,
+                  child: Container(
+                    width: double.infinity, height: 56,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                          colors: [_sg0, _sg2, _sg3],
+                          stops: [0.0, 0.5, 1.0],
+                          begin: Alignment.topLeft, end: Alignment.bottomRight),
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: [BoxShadow(color: _sg3.withOpacity(.4),
+                          blurRadius: 22, spreadRadius: -2, offset: const Offset(0, 10))],
+                    ),
+                    child: Stack(children: [
+                      Positioned.fill(child: ClipRRect(
+                        borderRadius: BorderRadius.circular(18),
+                        child: Align(alignment: Alignment.topCenter,
+                          child: FractionallySizedBox(heightFactor: .45, widthFactor: 1,
+                            child: Container(decoration: BoxDecoration(
+                              gradient: LinearGradient(begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [Colors.white.withOpacity(.18), Colors.transparent]))))))),
+                      Center(child: _loading
+                          ? const SizedBox(width: 22, height: 22,
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2.5))
+                          : const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                              Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                              SizedBox(width: 10),
+                              Text('Create Account', style: TextStyle(color: Colors.white,
+                                  fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: .2)),
+                            ])),
+                    ]),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+                Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  const Text('Already have an account? ',
+                      style: TextStyle(color: _sub, fontSize: 14)),
+                  _Tap(onTap: () => Navigator.pushReplacement(context,
+                      MaterialPageRoute(builder: (_) => const LoginScreen())),
+                    child: const Text('Sign In', style: TextStyle(color: _sg2,
+                        fontSize: 14, fontWeight: FontWeight.w800))),
+                ]),
+              ]),
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLabel(String text) => Align(
-        alignment: Alignment.centerLeft,
-        child: Padding(
-          padding: const EdgeInsets.only(bottom: 6),
-          child: Text(text,
-              style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textDark)),
         ),
-      );
+      ]),
+    ),
+  );
 
-  InputDecoration _decoration(String hint) => InputDecoration(
-        hintText: hint,
-        hintStyle: const TextStyle(color: AppColors.textGrey, fontSize: 14),
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: AppColors.inputBorder)),
-        enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: AppColors.inputBorder)),
-        focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(
-                color: AppColors.supplierGreen, width: 1.5)),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-      );
+  Widget _card({required Widget child}) => Container(
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(22),
+      boxShadow: [
+        BoxShadow(color: _sg1.withOpacity(.07), blurRadius: 20, offset: const Offset(0, 6)),
+        BoxShadow(color: Colors.black.withOpacity(.03), blurRadius: 4, offset: const Offset(0, 2)),
+      ],
+    ),
+    child: child,
+  );
 
-  Widget _buildTextField(TextEditingController c, String hint,
-      {TextInputType type = TextInputType.text}) {
-    return TextField(
-        controller: c, keyboardType: type, decoration: _decoration(hint));
-  }
+  Widget _label(String t) => Padding(
+    padding: const EdgeInsets.only(bottom: 8, left: 2),
+    child: Text(t, style: const TextStyle(fontSize: 13,
+        fontWeight: FontWeight.w800, color: _txt)),
+  );
 
-  Widget _buildPasswordField() {
-    return TextField(
-      controller: _passwordController,
-      obscureText: _obscurePassword,
-      decoration: _decoration('Create a password').copyWith(
+  Widget _field(TextEditingController c, String hint, IconData icon,
+      {TextInputType type = TextInputType.text}) => TextField(
+    controller: c, keyboardType: type,
+    style: const TextStyle(fontSize: 14.5, color: _txt, fontWeight: FontWeight.w600),
+    decoration: _deco(hint, icon),
+  );
+
+  Widget _obscureField() => StatefulBuilder(
+    builder: (_, set) => TextField(
+      controller: _pwCtrl, obscureText: _obscure,
+      style: const TextStyle(fontSize: 14.5, color: _txt, fontWeight: FontWeight.w600),
+      decoration: _deco('Create a password', Icons.lock_outline_rounded).copyWith(
         suffixIcon: IconButton(
-          icon: Icon(
-              _obscurePassword
-                  ? Icons.visibility_outlined
-                  : Icons.visibility_off_outlined,
-              color: AppColors.textGrey),
-          onPressed: () =>
-              setState(() => _obscurePassword = !_obscurePassword),
+          icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+              color: _sub, size: 20),
+          onPressed: () => setState(() => _obscure = !_obscure),
         ),
       ),
-    );
-  }
+    ),
+  );
+
+  InputDecoration _deco(String hint, IconData icon) => InputDecoration(
+    hintText: hint,
+    hintStyle: const TextStyle(color: Color(0xFFBBC0D4), fontSize: 14),
+    prefixIcon: Icon(icon, color: _sub, size: 20),
+    filled: true, fillColor: _bg,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none),
+    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFD0EDE0))),
+    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: _sg2.withOpacity(.6), width: 1.5)),
+  );
+
+  Widget _blob(double sz, Color c, double op) =>
+      Container(width: sz, height: sz,
+          decoration: BoxDecoration(shape: BoxShape.circle, color: c.withOpacity(op)));
 }
