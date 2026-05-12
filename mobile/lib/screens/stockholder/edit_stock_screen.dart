@@ -1,12 +1,14 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/stock_service.dart';
+import '../../services/location_service.dart';
+import '../shared/location_picker_screen.dart';
 
-const _sg0 = Color(0xFF012B1E);
-const _sg1 = Color(0xFF054F3A);
-const _sg2 = Color(0xFF0A7A56);
-const _sg3 = Color(0xFF0FBB84);
-const _bg  = Color(0xFFF0FBF6);
+const _sp0 = Color(0xFF16002E);
+const _sp1 = Color(0xFF3B0D6B);
+const _sp2 = Color(0xFF7B2FD4);
+const _sp3 = Color(0xFFBB6BF7);
+const _bg  = Color(0xFFF8F0FF);
 const _txt = Color(0xFF212121);
 const _sub = Color(0xFF757575);
 const _red1 = Color(0xFF7B1C1C);
@@ -45,9 +47,9 @@ class EditStockScreen extends StatefulWidget {
 class _ESS extends State<EditStockScreen> {
   late final TextEditingController _qty;
   late final TextEditingController _price;
-  late final TextEditingController _addr;
   late final TextEditingController _notes;
   late String _status;
+  LocationResult? _loc;
   bool _saving = false;
 
   @override
@@ -56,15 +58,31 @@ class _ESS extends State<EditStockScreen> {
     final s = widget.stock;
     _qty   = TextEditingController(text: (s['qty']   as String? ?? '').replaceAll(RegExp(r'\D'), ''));
     _price = TextEditingController(text: (s['price'] as String? ?? '').replaceAll(RegExp(r'[^0-9.]'), ''));
-    _addr  = TextEditingController(text: (s['loc']   as String?) ?? '');
     _notes = TextEditingController(text: (s['notes'] as String?) ?? '');
     _status = (s['status'] as String?) ?? 'Available';
+
+    final lat = (s['lat'] as num?)?.toDouble();
+    final lng = (s['lng'] as num?)?.toDouble();
+    final loc = (s['loc'] as String?) ?? '';
+    if (lat != null && lat != 0 && lng != null && lng != 0) {
+      _loc = LocationResult(lat: lat, lng: lng,
+          address: loc.isNotEmpty ? loc : '${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}',
+          area: loc, district: '');
+    }
   }
 
   @override
   void dispose() {
-    _qty.dispose(); _price.dispose(); _addr.dispose(); _notes.dispose();
+    _qty.dispose(); _price.dispose(); _notes.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickLoc() async {
+    final r = await Navigator.push<LocationResult>(context,
+      MaterialPageRoute(builder: (_) => LocationPickerScreen(
+        title: 'Warehouse Location',
+        initialLat: _loc?.lat, initialLng: _loc?.lng)));
+    if (r != null && mounted) setState(() => _loc = r);
   }
 
   Future<void> _save() async {
@@ -80,7 +98,10 @@ class _ESS extends State<EditStockScreen> {
       final res = await StockService.updateStock(
         stockId,
         quantity: qty, price: price,
-        warehouseArea: _addr.text.trim(),
+        warehouseArea: _loc != null
+            ? (_loc!.area.isNotEmpty ? _loc!.area : _loc!.address) : null,
+        lat: _loc?.lat,
+        lng: _loc?.lng,
         notes: _notes.text.trim(),
         status: _status == 'Available' ? 'available' : 'sold_out',
       );
@@ -97,10 +118,10 @@ class _ESS extends State<EditStockScreen> {
         child: Padding(padding: const EdgeInsets.all(28), child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(width: 68, height: 68,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [_sg1, _sg3],
+              gradient: const LinearGradient(colors: [_sp1, _sp3],
                   begin: Alignment.topLeft, end: Alignment.bottomRight),
               shape: BoxShape.circle,
-              boxShadow: [BoxShadow(color: _sg3.withOpacity(.4),
+              boxShadow: [BoxShadow(color: _sp3.withOpacity(.4),
                   blurRadius: 16, offset: const Offset(0, 4))],
             ),
             child: const Icon(Icons.check_rounded, color: Colors.white, size: 34)),
@@ -114,9 +135,9 @@ class _ESS extends State<EditStockScreen> {
           _Tap(onTap: () { Navigator.pop(context); Navigator.pop(context, true); },
             child: Container(width: double.infinity, height: 50,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [_sg1, _sg3]),
+                gradient: const LinearGradient(colors: [_sp1, _sp3]),
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: _sg3.withOpacity(.35),
+                boxShadow: [BoxShadow(color: _sp3.withOpacity(.35),
                     blurRadius: 12, offset: const Offset(0, 4))],
               ),
               child: const Center(child: Text('Done',
@@ -196,13 +217,13 @@ class _ESS extends State<EditStockScreen> {
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: Colors.white, borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFD0EDE0)),
+                border: Border.all(color: const Color(0xFFE8D5FF)),
               ),
               child: Row(children: [
                 Container(width: 44, height: 44,
                   decoration: BoxDecoration(
-                    color: _sg3.withOpacity(.15), borderRadius: BorderRadius.circular(12)),
-                  child: const Icon(Icons.inventory_2_rounded, color: _sg2, size: 22)),
+                    color: _sp3.withOpacity(.15), borderRadius: BorderRadius.circular(12)),
+                  child: const Icon(Icons.inventory_2_rounded, color: _sp2, size: 22)),
                 const SizedBox(width: 12),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text((s['product'] as String?) ?? 'Stock Item',
@@ -216,7 +237,7 @@ class _ESS extends State<EditStockScreen> {
 
             _card(title: 'Status', icon: Icons.toggle_on_rounded,
               child: Row(children: [
-                _statusChip('Available', const [_sg1, _sg3]),
+                _statusChip('Available', const [_sp1, _sp3]),
                 const SizedBox(width: 10),
                 _statusChip('Sold Out', const [_red1, _red2]),
               ])),
@@ -233,9 +254,9 @@ class _ESS extends State<EditStockScreen> {
             const SizedBox(height: 14),
 
             _card(title: 'Location & Notes', icon: Icons.warehouse_rounded,
-              child: Column(children: [
-                _fieldLabel('Warehouse Area *'),
-                _field(_addr, lines: 2),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                _fieldLabel('Warehouse Location'),
+                _locationCard(),
                 const SizedBox(height: 12),
                 _fieldLabel('Additional Notes'),
                 _field(_notes, lines: 3),
@@ -246,12 +267,12 @@ class _ESS extends State<EditStockScreen> {
               child: Container(width: double.infinity, height: 56,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [_sg0, _sg2, _sg3],
+                    colors: [_sp0, _sp2, _sp3],
                     stops: [0.0, 0.5, 1.0],
                     begin: Alignment.topLeft, end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(18),
-                  boxShadow: [BoxShadow(color: _sg3.withOpacity(.4),
+                  boxShadow: [BoxShadow(color: _sp3.withOpacity(.4),
                       blurRadius: 22, spreadRadius: -2, offset: const Offset(0, 10))],
                 ),
                 child: Stack(children: [
@@ -282,7 +303,7 @@ class _ESS extends State<EditStockScreen> {
   Widget _buildHeader(Map<String, dynamic> s) => Container(
     decoration: const BoxDecoration(
       gradient: LinearGradient(
-        colors: [_sg0, _sg1, _sg2, _sg3],
+        colors: [_sp0, _sp1, _sp2, _sp3],
         stops: [0.0, 0.35, 0.7, 1.0],
         begin: Alignment.topLeft, end: Alignment.bottomRight,
       ),
@@ -329,13 +350,62 @@ class _ESS extends State<EditStockScreen> {
     ),
   );
 
+  Widget _locationCard() => _Tap(onTap: _pickLoc,
+    child: Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _bg, borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+            color: _loc != null ? _sp2.withOpacity(.5) : const Color(0xFFE8D5FF),
+            width: _loc != null ? 1.5 : 1),
+      ),
+      child: Row(children: [
+        Container(width: 44, height: 44,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: _loc != null ? const [_sp1, _sp3]
+                  : [const Color(0xFFE8D5FF), const Color(0xFFEEDDFF)],
+              begin: Alignment.topLeft, end: Alignment.bottomRight),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: _loc != null ? [BoxShadow(color: _sp3.withOpacity(.3),
+                blurRadius: 8, offset: const Offset(0, 3))] : null,
+          ),
+          child: Icon(Icons.warehouse_rounded,
+              color: _loc != null ? Colors.white : _sub, size: 20)),
+        const SizedBox(width: 12),
+        Expanded(child: _loc != null
+            ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(_loc!.address, maxLines: 2, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 13.5,
+                        fontWeight: FontWeight.w700, color: _txt)),
+                const SizedBox(height: 3),
+                Text('Tap to change warehouse location',
+                    style: TextStyle(fontSize: 11, color: _sp2.withOpacity(.8),
+                        fontWeight: FontWeight.w500)),
+              ])
+            : const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('No location set', style: TextStyle(
+                    fontSize: 14, fontWeight: FontWeight.w700, color: _txt)),
+                SizedBox(height: 3),
+                Text('Tap to pick on map or use GPS', style: TextStyle(
+                    fontSize: 12, color: _sub)),
+              ])),
+        Container(
+          padding: const EdgeInsets.all(7),
+          decoration: BoxDecoration(
+            color: _sp2.withOpacity(.1), shape: BoxShape.circle),
+          child: Icon(Icons.chevron_right_rounded, color: _sp2, size: 18)),
+      ]),
+    ),
+  );
+
   Widget _card({required String title, required IconData icon, required Widget child}) =>
     Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white, borderRadius: BorderRadius.circular(18),
         boxShadow: [
-          BoxShadow(color: _sg1.withOpacity(.06), blurRadius: 14, offset: const Offset(0, 4)),
+          BoxShadow(color: _sp1.withOpacity(.06), blurRadius: 14, offset: const Offset(0, 4)),
           BoxShadow(color: Colors.black.withOpacity(.03), blurRadius: 4, offset: const Offset(0, 2)),
         ],
       ),
@@ -343,8 +413,8 @@ class _ESS extends State<EditStockScreen> {
         Row(children: [
           Container(width: 30, height: 30,
             decoration: BoxDecoration(
-              color: _sg3.withOpacity(.15), borderRadius: BorderRadius.circular(8)),
-            child: Icon(icon, size: 15, color: _sg2)),
+              color: _sp3.withOpacity(.15), borderRadius: BorderRadius.circular(8)),
+            child: Icon(icon, size: 15, color: _sp2)),
           const SizedBox(width: 8),
           Text(title, style: const TextStyle(
               fontSize: 13.5, fontWeight: FontWeight.w900, color: _txt)),
@@ -367,7 +437,7 @@ class _ESS extends State<EditStockScreen> {
           gradient: sel ? LinearGradient(colors: colors) : null,
           color: sel ? null : _bg,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: sel ? Colors.transparent : const Color(0xFFD0EDE0)),
+          border: Border.all(color: sel ? Colors.transparent : const Color(0xFFE8D5FF)),
           boxShadow: sel ? [BoxShadow(color: colors.last.withOpacity(.3),
               blurRadius: 8, offset: const Offset(0, 3))] : null,
         ),
@@ -394,9 +464,9 @@ class _ESS extends State<EditStockScreen> {
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none),
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFD0EDE0))),
+          borderSide: const BorderSide(color: Color(0xFFE8D5FF))),
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: _sg2.withOpacity(.6), width: 1.5)),
+          borderSide: BorderSide(color: _sp2.withOpacity(.6), width: 1.5)),
     ),
   );
 }

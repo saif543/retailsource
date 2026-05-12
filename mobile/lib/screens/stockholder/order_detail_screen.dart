@@ -1,13 +1,14 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/order_service.dart';
 import '../../services/receipt_service.dart';
+import '../../config/language.dart';
 
-const _sg0 = Color(0xFF012B1E);
-const _sg1 = Color(0xFF054F3A);
-const _sg2 = Color(0xFF0A7A56);
-const _sg3 = Color(0xFF0FBB84);
-const _bg  = Color(0xFFF0FBF6);
+const _sp0 = Color(0xFF16002E);
+const _sp1 = Color(0xFF3B0D6B);
+const _sp2 = Color(0xFF7B2FD4);
+const _sp3 = Color(0xFFBB6BF7);
+const _bg  = Color(0xFFF8F0FF);
 const _txt = Color(0xFF212121);
 const _sub = Color(0xFF757575);
 const _red1 = Color(0xFF7B1C1C);
@@ -61,12 +62,16 @@ class _SODS extends State<StockholderOrderDetailScreen> {
   @override
   void initState() {
     super.initState();
+    appLang.addListener(_onLangChange);
     _order = Map<String, dynamic>.from(widget.order);
     _status = (_order['status'] as String?) ?? 'pending';
   }
 
+  void _onLangChange() => setState(() {});
+
   @override
   void dispose() {
+    appLang.removeListener(_onLangChange);
     for (final c in _otpCtrl) c.dispose();
     for (final f in _otpFocus) f.dispose();
     super.dispose();
@@ -106,7 +111,7 @@ class _SODS extends State<StockholderOrderDetailScreen> {
       if (!mounted) return;
       setState(() => _status = 'accepted');
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        backgroundColor: _sg1,
+        backgroundColor: _sp1,
         content: const Text('Order accepted! Buyer info is now visible.',
             style: TextStyle(fontWeight: FontWeight.w600))));
     } else {
@@ -126,7 +131,7 @@ class _SODS extends State<StockholderOrderDetailScreen> {
             decoration: BoxDecoration(color: _red2.withOpacity(.1), shape: BoxShape.circle),
             child: const Icon(Icons.close_rounded, color: _red2, size: 28)),
           const SizedBox(height: 16),
-          const Text('Decline Order?', style: TextStyle(
+          Text(S('decline_order_title'), style: const TextStyle(
               fontSize: 18, fontWeight: FontWeight.w900, color: _txt)),
           const SizedBox(height: 8),
           const Text('The shop owner will be notified. This cannot be undone.',
@@ -149,8 +154,8 @@ class _SODS extends State<StockholderOrderDetailScreen> {
                   gradient: const LinearGradient(colors: [_red1, _red2]),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Center(child: Text('Decline',
-                    style: TextStyle(fontWeight: FontWeight.w800, color: Colors.white)))))),
+                child: Center(child: Text(S('decline_btn'),
+                    style: const TextStyle(fontWeight: FontWeight.w800, color: Colors.white)))))),
           ]),
         ])),
       ),
@@ -198,10 +203,10 @@ class _SODS extends State<StockholderOrderDetailScreen> {
           child: Padding(padding: const EdgeInsets.all(28), child: Column(mainAxisSize: MainAxisSize.min, children: [
             Container(width: 76, height: 76,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [_sg1, _sg3],
+                gradient: const LinearGradient(colors: [_sp1, _sp3],
                     begin: Alignment.topLeft, end: Alignment.bottomRight),
                 shape: BoxShape.circle,
-                boxShadow: [BoxShadow(color: _sg3.withOpacity(.4),
+                boxShadow: [BoxShadow(color: _sp3.withOpacity(.4),
                     blurRadius: 20, offset: const Offset(0, 6))],
               ),
               child: const Icon(Icons.check_rounded, color: Colors.white, size: 40)),
@@ -216,9 +221,9 @@ class _SODS extends State<StockholderOrderDetailScreen> {
             _Tap(onTap: () => Navigator.pop(context),
               child: Container(width: double.infinity, height: 50,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [_sg1, _sg3]),
+                  gradient: const LinearGradient(colors: [_sp1, _sp3]),
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: [BoxShadow(color: _sg3.withOpacity(.4),
+                  boxShadow: [BoxShadow(color: _sp3.withOpacity(.4),
                       blurRadius: 14, offset: const Offset(0, 6))],
                 ),
                 child: const Center(child: Text('Done',
@@ -240,9 +245,9 @@ class _SODS extends State<StockholderOrderDetailScreen> {
   List<Color> get _statusGrad {
     switch (_status) {
       case 'pending': return const [_amb1, _amb2];
-      case 'accepted': return const [_sg1, _sg3];
+      case 'accepted': return const [_sp1, _sp3];
       case 'out_for_delivery': return const [_ind1, _ind2];
-      default: return const [Color(0xFF1A5C3A), Color(0xFF2ECC71)];
+      default: return const [_sp1, _sp3];
     }
   }
 
@@ -312,7 +317,7 @@ class _SODS extends State<StockholderOrderDetailScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [_sg1, _sg3]),
+                    gradient: const LinearGradient(colors: [_sp1, _sp3]),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(children: [
@@ -336,7 +341,7 @@ class _SODS extends State<StockholderOrderDetailScreen> {
                       Row(children: [
                         Container(width: 44, height: 44,
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(colors: [_sg1, _sg3]),
+                            gradient: const LinearGradient(colors: [_sp1, _sp3]),
                             shape: BoxShape.circle,
                           ),
                           child: Center(child: Text(
@@ -367,12 +372,12 @@ class _SODS extends State<StockholderOrderDetailScreen> {
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: _amb2.withOpacity(.3)),
                       ),
-                      child: const Row(children: [
-                        Icon(Icons.lock_outline, color: _amb1, size: 18),
-                        SizedBox(width: 10),
+                      child: Row(children: [
+                        const Icon(Icons.lock_outline, color: _amb1, size: 18),
+                        const SizedBox(width: 10),
                         Expanded(child: Text(
-                            'Buyer info revealed after you accept the order',
-                            style: TextStyle(color: _amb1, fontWeight: FontWeight.w600))),
+                            S('buyer_info_hidden'),
+                            style: const TextStyle(color: _amb1, fontWeight: FontWeight.w600))),
                       ])),
             ),
             const SizedBox(height: 14),
@@ -431,10 +436,10 @@ class _SODS extends State<StockholderOrderDetailScreen> {
                       child: Center(child: _otpVerifying
                           ? const SizedBox(width: 22, height: 22,
                               child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                          : const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                              Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-                              SizedBox(width: 8),
-                              Text('Confirm Delivery', style: TextStyle(color: Colors.white,
+                          : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                              const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                              const SizedBox(width: 8),
+                              Text(S('confirm_delivery_btn'), style: const TextStyle(color: Colors.white,
                                   fontSize: 15, fontWeight: FontWeight.w900)),
                             ])))),
                 ]),
@@ -448,14 +453,14 @@ class _SODS extends State<StockholderOrderDetailScreen> {
               title: 'Delivery Progress',
               child: Column(children: [
                 _step('Order Placed', _fmt(createdAt).isEmpty ? 'Just now' : _fmt(createdAt), true,
-                    grad: const [_sg1, _sg3]),
+                    grad: const [_sp1, _sp3]),
                 _step('Order Accepted', stepAccepted
                     ? (_fmt(acceptedAt).isEmpty ? 'Done' : _fmt(acceptedAt)) : 'Pending',
-                    stepAccepted, grad: const [_sg1, _sg3], current: _status == 'accepted'),
+                    stepAccepted, grad: const [_sp1, _sp3], current: _status == 'accepted'),
                 _step('Out for Delivery', stepOnWay ? 'On the way' : 'Pending',
                     stepOnWay, grad: const [_ind1, _ind2], current: _status == 'out_for_delivery'),
                 _step('Delivered', stepDelivered ? 'Complete' : 'Pending',
-                    stepDelivered, grad: const [Color(0xFF1A5C3A), Color(0xFF2ECC71)]),
+                    stepDelivered, grad: const [_sp1, _sp3]),
               ]),
             ),
             const SizedBox(height: 20),
@@ -466,18 +471,18 @@ class _SODS extends State<StockholderOrderDetailScreen> {
                 Expanded(child: _Tap(onTap: _loading ? () {} : _acceptOrder,
                   child: Container(height: 52,
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(colors: [_sg1, _sg3]),
+                      gradient: const LinearGradient(colors: [_sp1, _sp3]),
                       borderRadius: BorderRadius.circular(16),
-                      boxShadow: [BoxShadow(color: _sg3.withOpacity(.35),
+                      boxShadow: [BoxShadow(color: _sp3.withOpacity(.35),
                           blurRadius: 14, offset: const Offset(0, 6))],
                     ),
                     child: Center(child: _loading
                         ? const SizedBox(width: 22, height: 22,
                             child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                        : const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                            Icon(Icons.check_rounded, color: Colors.white, size: 18),
-                            SizedBox(width: 8),
-                            Text('Accept Order', style: TextStyle(color: Colors.white,
+                        : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                            const Icon(Icons.check_rounded, color: Colors.white, size: 18),
+                            const SizedBox(width: 8),
+                            Text(S('accept_order_btn'), style: const TextStyle(color: Colors.white,
                                 fontSize: 15, fontWeight: FontWeight.w900)),
                           ]))))),
                 const SizedBox(width: 10),
@@ -487,11 +492,11 @@ class _SODS extends State<StockholderOrderDetailScreen> {
                       border: Border.all(color: _red2.withOpacity(.6), width: 1.5),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: const Center(child: Row(
+                    child: Center(child: Row(
                         mainAxisAlignment: MainAxisAlignment.center, children: [
-                      Icon(Icons.close_rounded, color: _red2, size: 18),
-                      SizedBox(width: 8),
-                      Text('Decline', style: TextStyle(color: _red2,
+                      const Icon(Icons.close_rounded, color: _red2, size: 18),
+                      const SizedBox(width: 8),
+                      Text(S('decline_btn'), style: const TextStyle(color: _red2,
                           fontSize: 15, fontWeight: FontWeight.w800)),
                     ]))))),
               ]),
@@ -507,10 +512,10 @@ class _SODS extends State<StockholderOrderDetailScreen> {
                   child: Center(child: _loading
                       ? const SizedBox(width: 22, height: 22,
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                      : const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                          Icon(Icons.local_shipping_rounded, color: Colors.white, size: 20),
-                          SizedBox(width: 10),
-                          Text('Mark Out for Delivery', style: TextStyle(color: Colors.white,
+                      : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                          const Icon(Icons.local_shipping_rounded, color: Colors.white, size: 20),
+                          const SizedBox(width: 10),
+                          Text(S('mark_out_delivery'), style: const TextStyle(color: Colors.white,
                               fontSize: 15, fontWeight: FontWeight.w900)),
                         ])))),
             ] else if (_status == 'delivered') ...[
@@ -518,16 +523,16 @@ class _SODS extends State<StockholderOrderDetailScreen> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(colors: [
-                    const Color(0xFF1A5C3A).withOpacity(.1),
-                    const Color(0xFF2ECC71).withOpacity(.1)]),
+                    _sp1.withOpacity(.08),
+                    _sp3.withOpacity(.08)]),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: _sg3.withOpacity(.4)),
+                  border: Border.all(color: _sp3.withOpacity(.4)),
                 ),
                 child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Icon(Icons.check_circle_rounded, color: _sg2, size: 24),
+                  Icon(Icons.check_circle_rounded, color: _sp2, size: 24),
                   SizedBox(width: 10),
                   Text('Order Delivered Successfully',
-                      style: TextStyle(color: _sg1,
+                      style: TextStyle(color: _sp1,
                           fontWeight: FontWeight.w900, fontSize: 15)),
                 ]),
               ),
@@ -539,15 +544,15 @@ class _SODS extends State<StockholderOrderDetailScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: _sg1.withOpacity(.4), width: 1.5),
-                    boxShadow: [BoxShadow(color: _sg1.withOpacity(.08),
+                    border: Border.all(color: _sp1.withOpacity(.4), width: 1.5),
+                    boxShadow: [BoxShadow(color: _sp1.withOpacity(.08),
                         blurRadius: 12, offset: const Offset(0, 4))],
                   ),
                   child: const Center(child: Row(
                       mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Icon(Icons.download_rounded, color: _sg1, size: 20),
+                    Icon(Icons.download_rounded, color: _sp1, size: 20),
                     SizedBox(width: 10),
-                    Text('Download Receipt', style: TextStyle(color: _sg1,
+                    Text('Download Receipt', style: TextStyle(color: _sp1,
                         fontSize: 15, fontWeight: FontWeight.w800)),
                   ])),
                 ),
@@ -641,7 +646,7 @@ class _SODS extends State<StockholderOrderDetailScreen> {
       decoration: BoxDecoration(
         color: Colors.white, borderRadius: BorderRadius.circular(18),
         boxShadow: [
-          BoxShadow(color: _sg1.withOpacity(.06), blurRadius: 16, offset: const Offset(0, 4)),
+          BoxShadow(color: _sp1.withOpacity(.06), blurRadius: 16, offset: const Offset(0, 4)),
           BoxShadow(color: Colors.black.withOpacity(.03), blurRadius: 4, offset: const Offset(0, 2)),
         ],
       ),
@@ -649,8 +654,8 @@ class _SODS extends State<StockholderOrderDetailScreen> {
         Row(children: [
           Container(width: 30, height: 30,
             decoration: BoxDecoration(
-              color: _sg3.withOpacity(.15), borderRadius: BorderRadius.circular(8)),
-            child: Icon(icon, size: 16, color: _sg2)),
+              color: _sp3.withOpacity(.15), borderRadius: BorderRadius.circular(8)),
+            child: Icon(icon, size: 16, color: _sp2)),
           const SizedBox(width: 8),
           Text(title, style: const TextStyle(
               fontWeight: FontWeight.w900, fontSize: 14, color: _txt)),
@@ -670,7 +675,7 @@ class _SODS extends State<StockholderOrderDetailScreen> {
     padding: const EdgeInsets.all(10),
     decoration: BoxDecoration(color: _bg, borderRadius: BorderRadius.circular(10)),
     child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Icon(icon, size: 16, color: _sg2),
+      Icon(icon, size: 16, color: _sp2),
       const SizedBox(width: 8),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(label, style: const TextStyle(color: _sub, fontSize: 11.5)),
@@ -681,7 +686,7 @@ class _SODS extends State<StockholderOrderDetailScreen> {
   );
 
   Widget _step(String label, String time, bool done,
-      {List<Color> grad = const [_sg1, _sg3], bool current = false}) =>
+      {List<Color> grad = const [_sp1, _sp3], bool current = false}) =>
     Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: Row(children: [
       Container(width: 16, height: 16,
         decoration: BoxDecoration(

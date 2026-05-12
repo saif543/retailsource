@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/auth_service.dart';
+import '../../config/language.dart';
 import 'login_screen.dart';
 
 const _sg0 = Color(0xFF012B1E);
@@ -73,9 +74,11 @@ class _StRS extends State<StockholderRegisterScreen>
       .animate(CurvedAnimation(parent: _slideC, curve: Curves.easeOut));
 
   @override
-  void initState() { super.initState(); _slideC.forward(); }
+  void initState() { super.initState(); appLang.addListener(_onLangChange); _slideC.forward(); }
+  void _onLangChange() => setState(() {});
   @override
   void dispose() {
+    appLang.removeListener(_onLangChange);
     _nameCtrl.dispose(); _phoneCtrl.dispose();
     _companyCtrl.dispose(); _pwCtrl.dispose();
     _slideC.dispose(); super.dispose();
@@ -84,10 +87,10 @@ class _StRS extends State<StockholderRegisterScreen>
   Future<void> _register() async {
     if (_nameCtrl.text.isEmpty || _phoneCtrl.text.isEmpty ||
         _companyCtrl.text.isEmpty || _selected.isEmpty || _pwCtrl.text.isEmpty) {
-      _err('Fill all fields and pick at least one category'); return;
+      _err(S('fill_all_fields_category')); return;
     }
     if (_pwCtrl.text.length < 6) {
-      _err('Password must be at least 6 characters'); return;
+      _err(S('password_min_length')); return;
     }
     HapticFeedback.mediumImpact();
     setState(() => _loading = true);
@@ -106,7 +109,7 @@ class _StRS extends State<StockholderRegisterScreen>
         _err(r['error']?.toString() ?? 'Registration failed');
       }
     } catch (_) {
-      if (mounted) _err('Cannot connect to server');
+      if (mounted) _err(S('cannot_connect'));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -149,12 +152,12 @@ class _StRS extends State<StockholderRegisterScreen>
                         child: const Icon(Icons.arrow_back_ios_new_rounded,
                             color: Colors.white, size: 17))),
                     const SizedBox(width: 14),
-                    const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('Stockholder Sign Up', style: TextStyle(color: Colors.white,
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(S('stockholder_signup'), style: const TextStyle(color: Colors.white,
                           fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -.4)),
-                      SizedBox(height: 2),
-                      Text('Join as a supplier on SupplyLink',
-                          style: TextStyle(color: Colors.white54, fontSize: 12.5)),
+                      const SizedBox(height: 2),
+                      Text(S('join_as_supplier'),
+                          style: const TextStyle(color: Colors.white54, fontSize: 12.5)),
                     ])),
                   ]),
                   const SizedBox(height: 20),
@@ -180,25 +183,25 @@ class _StRS extends State<StockholderRegisterScreen>
               padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 _card(child: Column(children: [
-                  _label('Full Name'),
+                  _label(S('full_name')),
                   _field(_nameCtrl, 'e.g. Rahim Mia', Icons.person_outline_rounded),
                   const SizedBox(height: 14),
-                  _label('Phone Number'),
+                  _label(S('phone_number')),
                   _field(_phoneCtrl, '01XXXXXXXXX',
                       Icons.phone_outlined, type: TextInputType.phone),
                   const SizedBox(height: 14),
-                  _label('Company / Business Name'),
+                  _label(S('company_name')),
                   _field(_companyCtrl, 'e.g. Rahim Traders',
                       Icons.business_rounded),
                 ])),
                 const SizedBox(height: 16),
 
                 _card(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  _label('What do you supply?'),
-                  const Padding(
-                    padding: EdgeInsets.only(left: 2, bottom: 12),
-                    child: Text('Select all that apply',
-                        style: TextStyle(color: _sub, fontSize: 12)),
+                  _label(S('what_do_you_supply')),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 2, bottom: 12),
+                    child: Text(S('select_all_apply'),
+                        style: const TextStyle(color: _sub, fontSize: 12)),
                   ),
                   Wrap(spacing: 10, runSpacing: 10,
                     children: _cats.keys.map((cat) {
@@ -236,12 +239,12 @@ class _StRS extends State<StockholderRegisterScreen>
                 const SizedBox(height: 16),
 
                 _card(child: Column(children: [
-                  _label('Password'),
+                  _label(S('password')),
                   _obscureField(),
                   const SizedBox(height: 6),
-                  const Align(alignment: Alignment.centerLeft,
-                    child: Text('Minimum 6 characters',
-                        style: TextStyle(color: _sub, fontSize: 11.5))),
+                  Align(alignment: Alignment.centerLeft,
+                    child: Text(S('min_6_chars'),
+                        style: const TextStyle(color: _sub, fontSize: 11.5))),
                 ])),
                 const SizedBox(height: 28),
 
@@ -271,10 +274,10 @@ class _StRS extends State<StockholderRegisterScreen>
                           ? const SizedBox(width: 22, height: 22,
                               child: CircularProgressIndicator(
                                   color: Colors.white, strokeWidth: 2.5))
-                          : const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                              Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-                              SizedBox(width: 10),
-                              Text('Create Account', style: TextStyle(color: Colors.white,
+                          : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                              const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                              const SizedBox(width: 10),
+                              Text(S('create_account'), style: const TextStyle(color: Colors.white,
                                   fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: .2)),
                             ])),
                     ]),
@@ -283,11 +286,11 @@ class _StRS extends State<StockholderRegisterScreen>
 
                 const SizedBox(height: 20),
                 Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  const Text('Already have an account? ',
-                      style: TextStyle(color: _sub, fontSize: 14)),
+                  Text(S('already_have_account'),
+                      style: const TextStyle(color: _sub, fontSize: 14)),
                   _Tap(onTap: () => Navigator.pushReplacement(context,
                       MaterialPageRoute(builder: (_) => const LoginScreen())),
-                    child: const Text('Sign In', style: TextStyle(color: _sg2,
+                    child: Text(S('sign_in'), style: const TextStyle(color: _sg2,
                         fontSize: 14, fontWeight: FontWeight.w800))),
                 ]),
               ]),

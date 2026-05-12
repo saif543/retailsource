@@ -1,13 +1,14 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../services/earnings_service.dart';
+import '../../config/language.dart';
 
-const _sg0 = Color(0xFF012B1E);
-const _sg1 = Color(0xFF054F3A);
-const _sg2 = Color(0xFF0A7A56);
-const _sg3 = Color(0xFF0FBB84);
-const _bg  = Color(0xFFF0FBF6);
+const _sp0 = Color(0xFF16002E);
+const _sp1 = Color(0xFF3B0D6B);
+const _sp2 = Color(0xFF7B2FD4);
+const _sp3 = Color(0xFFBB6BF7);
+const _bg  = Color(0xFFF8F0FF);
 const _txt = Color(0xFF212121);
 const _sub = Color(0xFF757575);
 const _amb1 = Color(0xFFAD4A0A);
@@ -52,8 +53,20 @@ class _ES extends State<EarningsScreen> with SingleTickerProviderStateMixin {
       vsync: this, duration: const Duration(milliseconds: 500));
 
   @override
-  void initState() { super.initState(); _load(); }
-  @override void dispose() { _fadeC.dispose(); super.dispose(); }
+  void initState() {
+    super.initState();
+    appLang.addListener(_onLangChange);
+    _load();
+  }
+
+  void _onLangChange() => setState(() {});
+
+  @override
+  void dispose() {
+    appLang.removeListener(_onLangChange);
+    _fadeC.dispose();
+    super.dispose();
+  }
 
   Future<void> _load() async {
     setState(() => _loading = true);
@@ -84,13 +97,13 @@ class _ES extends State<EarningsScreen> with SingleTickerProviderStateMixin {
     child: Scaffold(
       backgroundColor: _bg,
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: _sg3))
+          ? const Center(child: CircularProgressIndicator(color: _sp3))
           : FadeTransition(
               opacity: CurvedAnimation(parent: _fadeC, curve: Curves.easeOut),
               child: Column(children: [
                 _header(),
                 Expanded(child: RefreshIndicator(
-                  onRefresh: _load, color: _sg3,
+                  onRefresh: _load, color: _sp3,
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
@@ -119,7 +132,7 @@ class _ES extends State<EarningsScreen> with SingleTickerProviderStateMixin {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-            colors: [_sg0, _sg1, _sg2, _sg3],
+            colors: [_sp0, _sp1, _sp2, _sp3],
             stops: [0.0, 0.35, 0.7, 1.0],
             begin: Alignment.topLeft, end: Alignment.bottomRight),
         borderRadius: BorderRadius.only(
@@ -128,8 +141,8 @@ class _ES extends State<EarningsScreen> with SingleTickerProviderStateMixin {
       child: SafeArea(bottom: false,
         child: Stack(children: [
           Positioned(top: -30, right: -30, child: _blob(160, Colors.white, .04)),
-          Positioned(top: 10,  right: 50,  child: _blob(50,  _sg3, .3)),
-          Positioned(top: 70,  left: -20,  child: _blob(100, _sg1, .25)),
+          Positioned(top: 10,  right: 50,  child: _blob(50,  _sp3, .3)),
+          Positioned(top: 70,  left: -20,  child: _blob(100, _sp1, .25)),
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 8, 20, 28),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -144,12 +157,12 @@ class _ES extends State<EarningsScreen> with SingleTickerProviderStateMixin {
                     child: const Icon(Icons.arrow_back_ios_new_rounded,
                         color: Colors.white, size: 17))),
                 const SizedBox(width: 14),
-                const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('My Earnings', style: TextStyle(color: Colors.white,
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(S('my_earnings_title'), style: const TextStyle(color: Colors.white,
                       fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -.4)),
-                  SizedBox(height: 2),
-                  Text('Net after 2% platform fee',
-                      style: TextStyle(color: Colors.white54, fontSize: 12.5)),
+                  const SizedBox(height: 2),
+                  Text(S('earnings_subtitle'),
+                      style: const TextStyle(color: Colors.white54, fontSize: 12.5)),
                 ])),
                 _Tap(onTap: _load,
                   child: Container(width: 40, height: 40,
@@ -163,7 +176,7 @@ class _ES extends State<EarningsScreen> with SingleTickerProviderStateMixin {
               const SizedBox(height: 24),
               Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('Total Net Earnings', style: TextStyle(
+                  Text(S('total_net_earnings'), style: const TextStyle(
                       color: Colors.white60, fontSize: 12)),
                   const SizedBox(height: 4),
                   Text('BDT ${_fmtFull(net)}',
@@ -202,17 +215,17 @@ class _ES extends State<EarningsScreen> with SingleTickerProviderStateMixin {
 
     return Column(children: [
       Row(children: [
-        Expanded(child: _statCard('Gross Earnings', _fmtFull(gross), _sg1, Icons.attach_money_rounded)),
+        Expanded(child: _statCard('Gross Earnings', _fmtFull(gross), _sp1, Icons.attach_money_rounded)),
         const SizedBox(width: 12),
         Expanded(child: _statCard('Platform Fee (2%)', _fmtFull(fee), _amb1, Icons.percent_rounded)),
         const SizedBox(width: 12),
-        Expanded(child: _statCard('Net Earnings', _fmtFull(net), _sg2, Icons.account_balance_wallet_rounded, highlight: true)),
+        Expanded(child: _statCard(S('net_earnings_label'), _fmtFull(net), _sp2, Icons.account_balance_wallet_rounded, highlight: true)),
       ]),
       const SizedBox(height: 12),
       Row(children: [
-        Expanded(child: _statCard('This Month', _fmtFull(thisNet), _sg3, Icons.calendar_today_rounded)),
+        Expanded(child: _statCard(S('this_month_label'), _fmtFull(thisNet), _sp3, Icons.calendar_today_rounded)),
         const SizedBox(width: 12),
-        Expanded(child: _statCard('Last Month', _fmtFull(lastNet), _sub, Icons.history_rounded)),
+        Expanded(child: _statCard(S('last_month_label'), _fmtFull(lastNet), _sub, Icons.history_rounded)),
         const SizedBox(width: 12),
         const Expanded(child: SizedBox()),
       ]),
@@ -224,13 +237,13 @@ class _ES extends State<EarningsScreen> with SingleTickerProviderStateMixin {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         gradient: highlight
-            ? const LinearGradient(colors: [_sg1, _sg3],
+            ? const LinearGradient(colors: [_sp1, _sp3],
                 begin: Alignment.topLeft, end: Alignment.bottomRight)
             : null,
         color: highlight ? null : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [BoxShadow(
-            color: (highlight ? _sg3 : _sg1).withOpacity(highlight ? .3 : .07),
+            color: (highlight ? _sp3 : _sp1).withOpacity(highlight ? .3 : .07),
             blurRadius: 14, offset: const Offset(0, 5))],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -286,7 +299,7 @@ class _ES extends State<EarningsScreen> with SingleTickerProviderStateMixin {
         Row(children: [
           Container(width: 32, height: 32,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [_sg1, _sg3]),
+              gradient: const LinearGradient(colors: [_sp1, _sp3]),
               borderRadius: BorderRadius.circular(9)),
             child: const Icon(Icons.bar_chart_rounded, color: Colors.white, size: 16)),
           const SizedBox(width: 10),
@@ -304,7 +317,7 @@ class _ES extends State<EarningsScreen> with SingleTickerProviderStateMixin {
                 BarChartRodData(
                   toY: e.value,
                   gradient: const LinearGradient(
-                      colors: [_sg1, _sg3],
+                      colors: [_sp1, _sp3],
                       begin: Alignment.bottomCenter, end: Alignment.topCenter),
                   width: 22,
                   borderRadius: BorderRadius.circular(6),
@@ -337,7 +350,7 @@ class _ES extends State<EarningsScreen> with SingleTickerProviderStateMixin {
               show: true,
               drawVerticalLine: false,
               getDrawingHorizontalLine: (_) => FlLine(
-                  color: _sg3.withOpacity(.12), strokeWidth: 1),
+                  color: _sp3.withOpacity(.12), strokeWidth: 1),
             ),
             borderData: FlBorderData(show: false),
           )),
@@ -355,8 +368,8 @@ class _ES extends State<EarningsScreen> with SingleTickerProviderStateMixin {
         decoration: _cardDeco(),
         child: Column(children: [
           Container(width: 56, height: 56,
-            decoration: BoxDecoration(color: _sg3.withOpacity(.12), shape: BoxShape.circle),
-            child: const Icon(Icons.receipt_long_outlined, color: _sg2, size: 26)),
+            decoration: BoxDecoration(color: _sp3.withOpacity(.12), shape: BoxShape.circle),
+            child: const Icon(Icons.receipt_long_outlined, color: _sp2, size: 26)),
           const SizedBox(height: 14),
           const Text('No transactions yet', style: TextStyle(
               fontWeight: FontWeight.w800, fontSize: 15, color: _txt)),
@@ -370,7 +383,7 @@ class _ES extends State<EarningsScreen> with SingleTickerProviderStateMixin {
       Row(children: [
         Container(width: 32, height: 32,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [_sg1, _sg3]),
+            gradient: const LinearGradient(colors: [_sp1, _sp3]),
             borderRadius: BorderRadius.circular(9)),
           child: const Icon(Icons.receipt_long_rounded, color: Colors.white, size: 15)),
         const SizedBox(width: 10),
@@ -399,7 +412,7 @@ class _ES extends State<EarningsScreen> with SingleTickerProviderStateMixin {
         Row(children: [
           Container(width: 44, height: 44,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [_sg1, _sg3],
+              gradient: const LinearGradient(colors: [_sp1, _sp3],
                   begin: Alignment.topLeft, end: Alignment.bottomRight),
               borderRadius: BorderRadius.circular(12)),
             child: const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20)),
@@ -415,7 +428,7 @@ class _ES extends State<EarningsScreen> with SingleTickerProviderStateMixin {
           ])),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
             Text('BDT ${_fmtFull(net)}',
-                style: const TextStyle(color: _sg1,
+                style: const TextStyle(color: _sp1,
                     fontWeight: FontWeight.w900, fontSize: 14)),
             Text('net', style: const TextStyle(color: _sub, fontSize: 10.5)),
           ]),
@@ -434,7 +447,7 @@ class _ES extends State<EarningsScreen> with SingleTickerProviderStateMixin {
             const SizedBox(width: 4),
             const Text('=', style: TextStyle(color: _sub)),
             const SizedBox(width: 4),
-            _miniKV('Net', 'BDT ${_fmtFull(net)}', _sg1),
+            _miniKV('Net', 'BDT ${_fmtFull(net)}', _sp1),
           ]),
         ),
       ]),
@@ -451,7 +464,7 @@ class _ES extends State<EarningsScreen> with SingleTickerProviderStateMixin {
     child: Padding(padding: const EdgeInsets.all(40), child: Column(children: [
       const Icon(Icons.wifi_off_rounded, size: 48, color: _sub),
       const SizedBox(height: 16),
-      const Text('Could not load earnings', style: TextStyle(
+      Text(S('could_not_load_earnings'), style: const TextStyle(
           fontWeight: FontWeight.w800, fontSize: 16, color: _txt)),
       const SizedBox(height: 8),
       const Text('Check your connection and try again.',
@@ -460,9 +473,9 @@ class _ES extends State<EarningsScreen> with SingleTickerProviderStateMixin {
       _Tap(onTap: _load, child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [_sg1, _sg3]),
+          gradient: const LinearGradient(colors: [_sp1, _sp3]),
           borderRadius: BorderRadius.circular(14)),
-        child: const Text('Retry', style: TextStyle(color: Colors.white,
+        child: Text(S('retry_btn'), style: const TextStyle(color: Colors.white,
             fontWeight: FontWeight.w800, fontSize: 14)))),
     ])),
   );
@@ -471,7 +484,7 @@ class _ES extends State<EarningsScreen> with SingleTickerProviderStateMixin {
     color: Colors.white,
     borderRadius: BorderRadius.circular(20),
     boxShadow: [
-      BoxShadow(color: _sg1.withOpacity(.07), blurRadius: 16, offset: const Offset(0, 5)),
+      BoxShadow(color: _sp1.withOpacity(.07), blurRadius: 16, offset: const Offset(0, 5)),
       BoxShadow(color: Colors.black.withOpacity(.03), blurRadius: 4, offset: const Offset(0, 2)),
     ],
   );

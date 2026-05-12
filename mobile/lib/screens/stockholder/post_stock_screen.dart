@@ -1,16 +1,20 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import '../../config/api_config.dart';
+import '../../config/language.dart';
 import '../../services/auth_service.dart';
 import '../../services/stock_service.dart';
+import '../../services/profile_service.dart';
+import '../../services/location_service.dart';
+import '../shared/location_picker_screen.dart';
 
-const _sg0 = Color(0xFF012B1E);
-const _sg1 = Color(0xFF054F3A);
-const _sg2 = Color(0xFF0A7A56);
-const _sg3 = Color(0xFF0FBB84);
-const _bg  = Color(0xFFF0FBF6);
+const _sp0 = Color(0xFF16002E);
+const _sp1 = Color(0xFF3B0D6B);
+const _sp2 = Color(0xFF7B2FD4);
+const _sp3 = Color(0xFFBB6BF7);
+const _bg  = Color(0xFFF8F0FF);
 const _txt = Color(0xFF212121);
 const _sub = Color(0xFF757575);
 
@@ -50,8 +54,8 @@ class _PSS extends State<PostStockScreen> {
   String? _unit;
   final _qty   = TextEditingController();
   final _price = TextEditingController();
-  final _addr  = TextEditingController();
   final _notes = TextEditingController();
+  LocationResult? _loc;
 
   final Map<String, int> _catIdMap = {};
   final Map<String, Map<String, dynamic>> _productData = {};
@@ -79,7 +83,46 @@ class _PSS extends State<PostStockScreen> {
   }
 
   @override
-  void initState() { super.initState(); _loadCategories(); }
+  void initState() {
+    super.initState();
+    appLang.addListener(_onLangChange);
+    _loadCategories();
+    _prefillLoc();
+  }
+  void _onLangChange() => setState(() {});
+  @override
+  void dispose() {
+    appLang.removeListener(_onLangChange);
+    _qty.dispose(); _price.dispose(); _notes.dispose();
+    super.dispose();
+  }
+
+  Future<void> _prefillLoc() async {
+    final cached = await ProfileService.getCachedLocation();
+    if (cached != null && mounted) setState(() => _loc = cached);
+    final profile = await ProfileService.getProfile();
+    if (!mounted) return;
+    final prof = (profile?['profile'] as Map?) ?? {};
+    final lat = (prof['lat'] as num?)?.toDouble();
+    final lng = (prof['lng'] as num?)?.toDouble();
+    if (lat != null && lat != 0 && lng != null && lng != 0) {
+      final addr = (prof['warehouse_address'] as String?) ?? '';
+      setState(() => _loc = LocationResult(
+        lat: lat, lng: lng,
+        address: addr.isNotEmpty ? addr : '${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}',
+        area:     (prof['area']     as String?) ?? '',
+        district: (prof['district'] as String?) ?? '',
+      ));
+    }
+  }
+
+  Future<void> _pickLoc() async {
+    final r = await Navigator.push<LocationResult>(context,
+      MaterialPageRoute(builder: (_) => LocationPickerScreen(
+        title: 'Warehouse Location',
+        initialLat: _loc?.lat, initialLng: _loc?.lng)));
+    if (r != null && mounted) setState(() => _loc = r);
+  }
 
   Future<void> _loadCategories() async {
     try {
@@ -118,12 +161,6 @@ class _PSS extends State<PostStockScreen> {
     if (mounted) setState(() => _loadingProducts = false);
   }
 
-  @override
-  void dispose() {
-    _qty.dispose(); _price.dispose(); _addr.dispose(); _notes.dispose();
-    super.dispose();
-  }
-
   Future<void> _submit() async {
     if (_cat == null || _product == null || _qty.text.isEmpty || _price.text.isEmpty) {
       _err('Fill all required fields'); return;
@@ -136,6 +173,7 @@ class _PSS extends State<PostStockScreen> {
     if (qty == null || price == null) {
       _err('Enter valid numbers for quantity and price'); return;
     }
+    if (_loc == null) { _err('Set your warehouse location'); return; }
     HapticFeedback.mediumImpact();
     setState(() => _submitting = true);
     final res = await StockService.createStock(
@@ -144,7 +182,9 @@ class _PSS extends State<PostStockScreen> {
       quantity: qty,
       unit: _unit ?? 'kg',
       price: price,
-      warehouseArea: _addr.text.trim(),
+      warehouseArea: _loc!.area.isNotEmpty ? _loc!.area : _loc!.address,
+      lat: _loc!.lat,
+      lng: _loc!.lng,
       notes: _notes.text.trim(),
     );
     if (!mounted) return;
@@ -159,15 +199,15 @@ class _PSS extends State<PostStockScreen> {
         child: Padding(padding: const EdgeInsets.all(28), child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(width: 72, height: 72,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [_sg1, _sg3],
+              gradient: const LinearGradient(colors: [_sp1, _sp3],
                   begin: Alignment.topLeft, end: Alignment.bottomRight),
               shape: BoxShape.circle,
-              boxShadow: [BoxShadow(color: _sg3.withOpacity(.4),
+              boxShadow: [BoxShadow(color: _sp3.withOpacity(.4),
                   blurRadius: 18, offset: const Offset(0, 6))],
             ),
             child: const Icon(Icons.check_rounded, color: Colors.white, size: 38)),
           const SizedBox(height: 18),
-          const Text('Stock Posted!', style: TextStyle(
+          Text(S('stock_posted'), style: const TextStyle(
               fontSize: 20, fontWeight: FontWeight.w900, color: _txt)),
           const SizedBox(height: 8),
           const Text('Your stock is now live and visible to nearby shop owners.',
@@ -179,9 +219,9 @@ class _PSS extends State<PostStockScreen> {
           },
             child: Container(width: double.infinity, height: 50,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [_sg1, _sg3]),
+                gradient: const LinearGradient(colors: [_sp1, _sp3]),
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: _sg3.withOpacity(.4),
+                boxShadow: [BoxShadow(color: _sp3.withOpacity(.4),
                     blurRadius: 14, offset: const Offset(0, 6))],
               ),
               child: const Center(child: Text('Done',
@@ -224,16 +264,16 @@ class _PSS extends State<PostStockScreen> {
                     duration: const Duration(milliseconds: 180),
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                     decoration: BoxDecoration(
-                      gradient: sel ? const LinearGradient(colors: [_sg1, _sg3]) : null,
+                      gradient: sel ? const LinearGradient(colors: [_sp1, _sp3]) : null,
                       color: sel ? null : Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: sel ? Colors.transparent : const Color(0xFFD0EDE0)),
-                      boxShadow: sel ? [BoxShadow(color: _sg3.withOpacity(.3),
+                      border: Border.all(color: sel ? Colors.transparent : const Color(0xFFE8D5FF)),
+                      boxShadow: sel ? [BoxShadow(color: _sp3.withOpacity(.3),
                           blurRadius: 8, offset: const Offset(0, 3))] : null,
                     ),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       Icon(_catIcons[cat] ?? Icons.category,
-                          color: sel ? Colors.white : _sg2, size: 15),
+                          color: sel ? Colors.white : _sp2, size: 15),
                       const SizedBox(width: 6),
                       Text(cat, style: TextStyle(
                           color: sel ? Colors.white : _txt,
@@ -245,7 +285,7 @@ class _PSS extends State<PostStockScreen> {
               _fieldLabel('Product *'),
               _loadingProducts
                   ? const Padding(padding: EdgeInsets.symmetric(vertical: 14),
-                      child: Center(child: CircularProgressIndicator(color: _sg2, strokeWidth: 2)))
+                      child: Center(child: CircularProgressIndicator(color: _sp2, strokeWidth: 2)))
                   : _dropdown(_productsForCat, _product,
                       _cat == null ? 'Select a category first' : 'Choose product...',
                       (v) => setState(() {
@@ -287,14 +327,14 @@ class _PSS extends State<PostStockScreen> {
               _fieldLabel('Price per Unit (৳) *'),
               _field(_price, '0.00', keyboard: TextInputType.number,
                   prefix: const Text('৳', style: TextStyle(
-                      color: _sg2, fontWeight: FontWeight.w900, fontSize: 16))),
+                      color: _sp2, fontWeight: FontWeight.w900, fontSize: 16))),
             ])),
           const SizedBox(height: 16),
 
           _sectionCard(title: 'Location & Notes', icon: Icons.warehouse_rounded,
-            child: Column(children: [
-              _fieldLabel('Warehouse Area / Address'),
-              _field(_addr, 'e.g. Mirpur, Dhaka'),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              _fieldLabel('Warehouse Location *'),
+              _locationCard(),
               const SizedBox(height: 14),
               _fieldLabel('Additional Notes (optional)'),
               _field(_notes,
@@ -308,13 +348,13 @@ class _PSS extends State<PostStockScreen> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: _submitting
-                      ? [_sg1.withOpacity(.5), _sg3.withOpacity(.5)]
-                      : const [_sg0, _sg2, _sg3],
+                      ? [_sp1.withOpacity(.5), _sp3.withOpacity(.5)]
+                      : const [_sp0, _sp2, _sp3],
                   stops: const [0.0, 0.5, 1.0],
                   begin: Alignment.topLeft, end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(18),
-                boxShadow: _submitting ? [] : [BoxShadow(color: _sg3.withOpacity(.4),
+                boxShadow: _submitting ? [] : [BoxShadow(color: _sp3.withOpacity(.4),
                     blurRadius: 22, spreadRadius: -2, offset: const Offset(0, 10))],
               ),
               child: Stack(children: [
@@ -329,10 +369,10 @@ class _PSS extends State<PostStockScreen> {
                 Center(child: _submitting
                     ? const SizedBox(width: 22, height: 22,
                         child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                    : const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        Icon(Icons.add_box_rounded, color: Colors.white, size: 20),
-                        SizedBox(width: 10),
-                        Text('Post Stock', style: TextStyle(color: Colors.white,
+                    : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        const Icon(Icons.add_box_rounded, color: Colors.white, size: 20),
+                        const SizedBox(width: 10),
+                        Text(S('post_stock_btn'), style: const TextStyle(color: Colors.white,
                             fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: .2)),
                       ])),
               ])),
@@ -345,7 +385,7 @@ class _PSS extends State<PostStockScreen> {
   Widget _buildHeader() => Container(
     decoration: const BoxDecoration(
       gradient: LinearGradient(
-        colors: [_sg0, _sg1, _sg2, _sg3],
+        colors: [_sp0, _sp1, _sp2, _sp3],
         stops: [0.0, 0.35, 0.7, 1.0],
         begin: Alignment.topLeft, end: Alignment.bottomRight,
       ),
@@ -366,8 +406,8 @@ class _PSS extends State<PostStockScreen> {
               child: const Icon(Icons.arrow_back_ios_new_rounded,
                   color: Colors.white, size: 17))),
           const SizedBox(width: 14),
-          const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Post Stock', style: TextStyle(color: Colors.white,
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(S('post_stock_title'), style: const TextStyle(color: Colors.white,
                 fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -.4)),
             SizedBox(height: 2),
             Text('List your stock for nearby shops',
@@ -385,13 +425,62 @@ class _PSS extends State<PostStockScreen> {
     ),
   );
 
+  Widget _locationCard() => _Tap(onTap: _pickLoc,
+    child: Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _bg, borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+            color: _loc != null ? _sp2.withOpacity(.5) : const Color(0xFFE8D5FF),
+            width: _loc != null ? 1.5 : 1),
+      ),
+      child: Row(children: [
+        Container(width: 44, height: 44,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: _loc != null ? const [_sp1, _sp3]
+                  : [const Color(0xFFE8D5FF), const Color(0xFFEEDDFF)],
+              begin: Alignment.topLeft, end: Alignment.bottomRight),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: _loc != null ? [BoxShadow(color: _sp3.withOpacity(.3),
+                blurRadius: 8, offset: const Offset(0, 3))] : null,
+          ),
+          child: Icon(Icons.warehouse_rounded,
+              color: _loc != null ? Colors.white : _sub, size: 20)),
+        const SizedBox(width: 12),
+        Expanded(child: _loc != null
+            ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(_loc!.address, maxLines: 2, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 13.5,
+                        fontWeight: FontWeight.w700, color: _txt)),
+                const SizedBox(height: 3),
+                Text('From your saved warehouse · tap to change',
+                    style: TextStyle(fontSize: 11, color: _sp2.withOpacity(.8),
+                        fontWeight: FontWeight.w500)),
+              ])
+            : const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Set warehouse location', style: TextStyle(
+                    fontSize: 14, fontWeight: FontWeight.w700, color: _txt)),
+                SizedBox(height: 3),
+                Text('Tap to pick on map or use GPS', style: TextStyle(
+                    fontSize: 12, color: _sub)),
+              ])),
+        Container(
+          padding: const EdgeInsets.all(7),
+          decoration: BoxDecoration(
+            color: _sp2.withOpacity(.1), shape: BoxShape.circle),
+          child: Icon(Icons.chevron_right_rounded, color: _sp2, size: 18)),
+      ]),
+    ),
+  );
+
   Widget _sectionCard({required String title, required IconData icon, required Widget child}) =>
     Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white, borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: _sg1.withOpacity(.07), blurRadius: 16, offset: const Offset(0, 4)),
+          BoxShadow(color: _sp1.withOpacity(.07), blurRadius: 16, offset: const Offset(0, 4)),
           BoxShadow(color: Colors.black.withOpacity(.03), blurRadius: 4, offset: const Offset(0, 2)),
         ],
       ),
@@ -399,8 +488,8 @@ class _PSS extends State<PostStockScreen> {
         Row(children: [
           Container(width: 32, height: 32,
             decoration: BoxDecoration(
-              color: _sg3.withOpacity(.15), borderRadius: BorderRadius.circular(9)),
-            child: Icon(icon, size: 17, color: _sg2)),
+              color: _sp3.withOpacity(.15), borderRadius: BorderRadius.circular(9)),
+            child: Icon(icon, size: 17, color: _sp2)),
           const SizedBox(width: 10),
           Text(title, style: const TextStyle(
               fontSize: 14, fontWeight: FontWeight.w900, color: _txt)),
@@ -429,9 +518,9 @@ class _PSS extends State<PostStockScreen> {
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none),
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFD0EDE0))),
+          borderSide: const BorderSide(color: Color(0xFFE8D5FF))),
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: _sg2.withOpacity(.6), width: 1.5)),
+          borderSide: BorderSide(color: _sp2.withOpacity(.6), width: 1.5)),
     ),
   );
 
@@ -440,7 +529,7 @@ class _PSS extends State<PostStockScreen> {
     padding: const EdgeInsets.symmetric(horizontal: 12),
     decoration: BoxDecoration(
       color: _bg, borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: const Color(0xFFD0EDE0)),
+      border: Border.all(color: const Color(0xFFE8D5FF)),
     ),
     child: DropdownButtonHideUnderline(
       child: DropdownButton<String>(

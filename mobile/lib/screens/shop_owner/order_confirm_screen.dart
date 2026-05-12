@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../services/order_service.dart';
 import '../../services/profile_service.dart';
 import '../../services/location_service.dart';
+import '../../config/language.dart';
 import '../shared/location_picker_screen.dart';
 import 'my_orders_screen.dart';
 
@@ -90,13 +91,16 @@ class _OCS extends State<OrderConfirmScreen> with SingleTickerProviderStateMixin
   @override
   void initState() {
     super.initState();
+    appLang.addListener(_onLangChange);
     _fadeC.forward();
     _initLocation();
     _qtyCtrl.addListener(() => setState(() {}));
   }
 
+  void _onLangChange() => setState(() {});
+
   @override
-  void dispose() { _qtyCtrl.dispose(); _fadeC.dispose(); super.dispose(); }
+  void dispose() { appLang.removeListener(_onLangChange); _qtyCtrl.dispose(); _fadeC.dispose(); super.dispose(); }
 
   Future<void> _initLocation() async {
     // 1. Use widget-passed address first (from demand location)
@@ -251,12 +255,12 @@ class _OCS extends State<OrderConfirmScreen> with SingleTickerProviderStateMixin
               _summaryCard(),
               const SizedBox(height: 20),
               // ── quantity ───────────────────────────────────────────────────
-              _sectionLabel('Quantity', Icons.scale_rounded, _c2),
+              _sectionLabel(S('quantity'), Icons.scale_rounded, _c2),
               const SizedBox(height: 12),
               _quantityInput(),
               const SizedBox(height: 24),
               // ── delivery location ──────────────────────────────────────────
-              _sectionLabel('Delivery Location', Icons.location_on_rounded, _c2),
+              _sectionLabel(S('delivery_location'), Icons.location_on_rounded, _c2),
               const SizedBox(height: 12),
               _locationCard(),
               const SizedBox(height: 24),
@@ -306,12 +310,12 @@ class _OCS extends State<OrderConfirmScreen> with SingleTickerProviderStateMixin
                 ),
               ),
               const SizedBox(width: 14),
-              const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Confirm Order', style: TextStyle(color: Colors.white,
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(S('confirm_order'), style: const TextStyle(color: Colors.white,
                     fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -.4)),
-                SizedBox(height: 2),
-                Text('Review and place your order',
-                    style: TextStyle(color: Colors.white54, fontSize: 12.5)),
+                const SizedBox(height: 2),
+                Text(S('review_place_order'),
+                    style: const TextStyle(color: Colors.white54, fontSize: 12.5)),
               ])),
               // COD badge
               Container(
@@ -472,8 +476,8 @@ class _OCS extends State<OrderConfirmScreen> with SingleTickerProviderStateMixin
         // text
         Expanded(child: _loc != null
             ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('Delivery Address',
-                    style: TextStyle(fontSize: 11.5, color: _sub,
+                Text(S('delivery_address'),
+                    style: const TextStyle(fontSize: 11.5, color: _sub,
                         fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
                 Text(_loc!.address,
@@ -584,7 +588,7 @@ class _OCS extends State<OrderConfirmScreen> with SingleTickerProviderStateMixin
                 Icon(Icons.check_circle_rounded,
                     color: _valid ? Colors.white : _sub, size: 22),
                 const SizedBox(width: 10),
-                Text('Place Order',
+                Text(S('place_order'),
                     style: TextStyle(
                         color: _valid ? Colors.white : _sub,
                         fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: .2)),

@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/auth_service.dart';
@@ -7,6 +7,7 @@ import '../../services/order_service.dart';
 import '../../services/profile_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/location_service.dart';
+import '../../config/language.dart';
 import '../shared/notifications_screen.dart';
 import '../shared/profile_screen.dart';
 import '../shared/location_picker_screen.dart';
@@ -17,11 +18,11 @@ import 'order_detail_screen.dart';
 import 'nearby_demands_screen.dart';
 
 // ── palette ───────────────────────────────────────────────────────────────────
-const _sg0 = Color(0xFF012B1E);
-const _sg1 = Color(0xFF054F3A);
-const _sg2 = Color(0xFF0A7A56);
-const _sg3 = Color(0xFF0FBB84);
-const _bg  = Color(0xFFF0FBF6);
+const _sp0 = Color(0xFF16002E);
+const _sp1 = Color(0xFF3B0D6B);
+const _sp2 = Color(0xFF7B2FD4);
+const _sp3 = Color(0xFFBB6BF7);
+const _bg  = Color(0xFFF8F0FF);
 const _txt = Color(0xFF212121);
 const _sub = Color(0xFF757575);
 
@@ -92,9 +93,10 @@ class _SD extends State<StockholderDashboard> with TickerProviderStateMixin {
         curve: Interval((i * .1).clamp(0, .7), ((i * .1) + .45).clamp(0, 1), curve: Curves.easeOut)));
 
   @override
-  void initState() { super.initState(); _hC.forward(); _load(); }
+  void initState() { super.initState(); appLang.addListener(_onLangChange); _hC.forward(); _load(); }
+  void _onLangChange() => setState(() {});
   @override
-  void dispose() { _hC.dispose(); _lC.dispose(); super.dispose(); }
+  void dispose() { appLang.removeListener(_onLangChange); _hC.dispose(); _lC.dispose(); super.dispose(); }
 
   Future<void> _load() async {
     setState(() => _busy = true);
@@ -193,12 +195,12 @@ class _SD extends State<StockholderDashboard> with TickerProviderStateMixin {
               ),
               child: const Icon(Icons.logout_rounded, color: _red2, size: 28)),
             const SizedBox(height: 16),
-            const Text('Log out?',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: _txt)),
+            Text(S('log_out_title'),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: _txt)),
             const SizedBox(height: 8),
-            const Text('You will need to sign in again.',
+            Text(S('log_out_subtitle'),
                 textAlign: TextAlign.center,
-                style: TextStyle(color: _sub, fontSize: 13)),
+                style: const TextStyle(color: _sub, fontSize: 13)),
             const SizedBox(height: 24),
             Row(children: [
               Expanded(child: _Tap(onTap: () => Navigator.pop(context, false),
@@ -207,8 +209,8 @@ class _SD extends State<StockholderDashboard> with TickerProviderStateMixin {
                     border: Border.all(color: const Color(0xFFE0E0E0)),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Center(child: Text('Cancel',
-                      style: TextStyle(fontWeight: FontWeight.w700, color: _sub)))))),
+                  child: Center(child: Text(S('cancel'),
+                      style: const TextStyle(fontWeight: FontWeight.w700, color: _sub)))))),
               const SizedBox(width: 12),
               Expanded(child: _Tap(onTap: () => Navigator.pop(context, true),
                 child: Container(height: 46,
@@ -216,8 +218,8 @@ class _SD extends State<StockholderDashboard> with TickerProviderStateMixin {
                     gradient: const LinearGradient(colors: [_red1, _red2]),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Center(child: Text('Log out',
-                      style: TextStyle(fontWeight: FontWeight.w800, color: Colors.white)))))),
+                  child: Center(child: Text(S('log_out'),
+                      style: const TextStyle(fontWeight: FontWeight.w800, color: Colors.white)))))),
             ]),
           ]),
         ),
@@ -232,7 +234,7 @@ class _SD extends State<StockholderDashboard> with TickerProviderStateMixin {
 
   void _snack(String msg, {bool error = false}) =>
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      backgroundColor: error ? _red1 : _sg1,
+      backgroundColor: error ? _red1 : _sp1,
       content: Text(msg, style: const TextStyle(fontWeight: FontWeight.w600))));
 
   @override
@@ -254,7 +256,7 @@ class _SD extends State<StockholderDashboard> with TickerProviderStateMixin {
         child: Column(children: [
           _buildHeader(),
           Expanded(child: RefreshIndicator(
-            color: _sg2,
+            color: _sp2,
             onRefresh: _load,
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -263,11 +265,11 @@ class _SD extends State<StockholderDashboard> with TickerProviderStateMixin {
                 if (!_hasLoc) ...[_buildLocationBanner(), const SizedBox(height: 14)],
                 _buildCTA(),
                 const SizedBox(height: 20),
-                _sectionHeader('Quick Actions'),
+                _sectionHeader(S('quick_actions')),
                 const SizedBox(height: 12),
                 _buildQuickActions(),
                 const SizedBox(height: 24),
-                _sectionRow('Active Orders', '${_activeOrders.length} in progress', () => setState(() => _tab = 2)),
+                _sectionRow(S('active_orders'), '${_activeOrders.length} in progress', () => setState(() => _tab = 2)),
                 const SizedBox(height: 10),
                 if (_activeOrders.isEmpty)
                   _emptyCard(Icons.local_shipping_outlined, 'No active deliveries')
@@ -276,7 +278,7 @@ class _SD extends State<StockholderDashboard> with TickerProviderStateMixin {
                       child: SlideTransition(position: _sl(e.key + 2),
                         child: _activeOrderCard(e.value)))),
                 const SizedBox(height: 20),
-                _sectionRow('New Orders', '${_newOrders.length} pending', () => setState(() => _tab = 2)),
+                _sectionRow(S('new_orders'), '${_newOrders.length} pending', () => setState(() => _tab = 2)),
                 const SizedBox(height: 12),
                 if (_newOrders.isEmpty)
                   _emptyCard(Icons.inbox_rounded, 'No new orders right now')
@@ -300,7 +302,7 @@ class _SD extends State<StockholderDashboard> with TickerProviderStateMixin {
       child: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [_sg0, _sg1, _sg2, _sg3],
+            colors: [_sp0, _sp1, _sp2, _sp3],
             stops: [0.0, 0.35, 0.7, 1.0],
             begin: Alignment.topLeft, end: Alignment.bottomRight,
           ),
@@ -310,7 +312,7 @@ class _SD extends State<StockholderDashboard> with TickerProviderStateMixin {
         ),
         child: Stack(children: [
           Positioned(top: -20, right: -30, child: _blob(140, Colors.white, .04)),
-          Positioned(top: 14, right: 50,   child: _blob(50, _sg3, .25)),
+          Positioned(top: 14, right: 50,   child: _blob(50, _sp3, .25)),
           SafeArea(bottom: false,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
@@ -466,12 +468,12 @@ class _SD extends State<StockholderDashboard> with TickerProviderStateMixin {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [_sg0, _sg1, _sg2, _sg3],
+          colors: [_sp0, _sp1, _sp2, _sp3],
           stops: [0, .35, .7, 1],
           begin: Alignment.topLeft, end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: _sg3.withOpacity(.35),
+        boxShadow: [BoxShadow(color: _sp3.withOpacity(.35),
             blurRadius: 20, spreadRadius: -4, offset: const Offset(0, 10))],
       ),
       child: Stack(children: [
@@ -509,19 +511,19 @@ class _SD extends State<StockholderDashboard> with TickerProviderStateMixin {
   // ── quick actions ─────────────────────────────────────────────────────────
   Widget _buildQuickActions() {
     final actions = <(String, IconData, List<Color>, VoidCallback)>[
-      ('Post\nStock', Icons.add_box_rounded, [_sg1, _sg3], () async {
+      (S('post_stock_action'), Icons.add_box_rounded, [_sp1, _sp3], () async {
         await Navigator.push(context, MaterialPageRoute(builder: (_) => const PostStockScreen()));
         _load();
       }),
-      ('My\nStock', Icons.inventory_2_rounded, [Color(0xFF0E4470), Color(0xFF2196F3)], () async {
+      (S('my_stock_action'), Icons.inventory_2_rounded, [Color(0xFF0E4470), Color(0xFF2196F3)], () async {
         await Navigator.push(context, MaterialPageRoute(builder: (_) => const MyStockScreen()));
         _load();
       }),
-      ('Orders', Icons.receipt_long_rounded, [_amb1, _amb2], () async {
+      (S('orders_action'), Icons.receipt_long_rounded, [_amb1, _amb2], () async {
         await Navigator.push(context, MaterialPageRoute(builder: (_) => const OrderInboxScreen()));
         _load();
       }),
-      ('Nearby\nDemands', Icons.near_me_rounded, [_ind1, _ind2], () async {
+      (S('nearby_demands_action'), Icons.near_me_rounded, [_ind1, _ind2], () async {
         await Navigator.push(context, MaterialPageRoute(builder: (_) => const NearbyDemandsScreen()));
       }),
     ];
@@ -566,9 +568,9 @@ class _SD extends State<StockholderDashboard> with TickerProviderStateMixin {
     _Tap(onTap: onMore, child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: _sg3.withOpacity(.12), borderRadius: BorderRadius.circular(20)),
+        color: _sp3.withOpacity(.12), borderRadius: BorderRadius.circular(20)),
       child: Text(badge,
-          style: const TextStyle(color: _sg2, fontWeight: FontWeight.w800, fontSize: 11.5)))),
+          style: const TextStyle(color: _sp2, fontWeight: FontWeight.w800, fontSize: 11.5)))),
   ]);
 
   Widget _emptyCard(IconData icon, String msg) => Container(
@@ -600,7 +602,7 @@ class _SD extends State<StockholderDashboard> with TickerProviderStateMixin {
           child: Row(children: [
             Container(width: 40, height: 40,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [_sg1, _sg3],
+                gradient: const LinearGradient(colors: [_sp1, _sp3],
                     begin: Alignment.topLeft, end: Alignment.bottomRight),
                 shape: BoxShape.circle),
               child: Center(child: Text(initials.isEmpty ? '?' : initials,
@@ -632,7 +634,7 @@ class _SD extends State<StockholderDashboard> with TickerProviderStateMixin {
                 style: const TextStyle(fontWeight: FontWeight.w700, color: _sub)),
             const SizedBox(width: 10),
             Text('৳${(o['price'] as num?)?.toStringAsFixed(0) ?? '0'}',
-                style: const TextStyle(color: _sg2, fontWeight: FontWeight.w900, fontSize: 15)),
+                style: const TextStyle(color: _sp2, fontWeight: FontWeight.w900, fontSize: 15)),
           ]),
         ),
         Padding(
@@ -641,15 +643,15 @@ class _SD extends State<StockholderDashboard> with TickerProviderStateMixin {
             Expanded(child: _Tap(onTap: () => _accept(o).then((_) => _load()),
               child: Container(height: 42,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [_sg1, _sg3]),
+                  gradient: const LinearGradient(colors: [_sp1, _sp3]),
                   borderRadius: BorderRadius.circular(12),
-                  boxShadow: [BoxShadow(color: _sg3.withOpacity(.3),
+                  boxShadow: [BoxShadow(color: _sp3.withOpacity(.3),
                       blurRadius: 8, offset: const Offset(0, 3))],
                 ),
-                child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Icon(Icons.check_rounded, color: Colors.white, size: 16),
-                  SizedBox(width: 6),
-                  Text('Accept', style: TextStyle(color: Colors.white,
+                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  const Icon(Icons.check_rounded, color: Colors.white, size: 16),
+                  const SizedBox(width: 6),
+                  Text(S('accept'), style: const TextStyle(color: Colors.white,
                       fontWeight: FontWeight.w800, fontSize: 13)),
                 ])))),
             const SizedBox(width: 10),
@@ -659,10 +661,10 @@ class _SD extends State<StockholderDashboard> with TickerProviderStateMixin {
                   border: Border.all(color: _red2.withOpacity(.6)),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Icon(Icons.close_rounded, color: _red2, size: 16),
-                  SizedBox(width: 6),
-                  Text('Decline', style: TextStyle(color: _red2,
+                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  const Icon(Icons.close_rounded, color: _red2, size: 16),
+                  const SizedBox(width: 6),
+                  Text(S('decline'), style: const TextStyle(color: _red2,
                       fontWeight: FontWeight.w800, fontSize: 13)),
                 ])))),
           ]),
@@ -677,7 +679,7 @@ class _SD extends State<StockholderDashboard> with TickerProviderStateMixin {
     final isOnWay = st == 'out_for_delivery';
     final grad = isOnWay
         ? const [_ind1, _ind2]
-        : const [_sg1, _sg3] as List<Color>;
+        : const [_sp1, _sp3] as List<Color>;
     final label = isOnWay ? 'ON WAY' : 'ACCEPTED';
     return _Tap(
       onTap: () async {
@@ -718,7 +720,7 @@ class _SD extends State<StockholderDashboard> with TickerProviderStateMixin {
                   color: Colors.white, fontWeight: FontWeight.w900, fontSize: 10))),
             const SizedBox(height: 4),
             Text('৳${(o['price'] as num?)?.toStringAsFixed(0) ?? '0'}',
-                style: const TextStyle(color: _sg2, fontWeight: FontWeight.w900, fontSize: 14)),
+                style: const TextStyle(color: _sp2, fontWeight: FontWeight.w900, fontSize: 14)),
           ]),
           const SizedBox(width: 4),
           const Icon(Icons.chevron_right, color: _sub, size: 20),
@@ -731,26 +733,26 @@ class _SD extends State<StockholderDashboard> with TickerProviderStateMixin {
   Widget _tipCard() => Container(
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
-      color: _sg3.withOpacity(.1),
+      color: _sp3.withOpacity(.1),
       borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: _sg3.withOpacity(.2)),
+      border: Border.all(color: _sp3.withOpacity(.2)),
     ),
     child: const Row(children: [
-      Icon(Icons.lightbulb_rounded, color: _sg2, size: 20),
+      Icon(Icons.lightbulb_rounded, color: _sp2, size: 20),
       SizedBox(width: 10),
       Expanded(child: Text(
           'Tip: Keep your stock fresh — shops nearby will see it instantly.',
-          style: TextStyle(fontSize: 12, color: _sg1, fontWeight: FontWeight.w600))),
+          style: TextStyle(fontSize: 12, color: _sp1, fontWeight: FontWeight.w600))),
     ]),
   );
 
   // ── bottom nav ────────────────────────────────────────────────────────────
   Widget _buildBottomNav() {
     final items = [
-      (Icons.home_rounded, Icons.home_outlined, 'Home'),
-      (Icons.inventory_2_rounded, Icons.inventory_2_outlined, 'My Stock'),
-      (Icons.receipt_long_rounded, Icons.receipt_long_outlined, 'Orders'),
-      (Icons.person_rounded, Icons.person_outline_rounded, 'Profile'),
+      (Icons.home_rounded, Icons.home_outlined, S('nav_home')),
+      (Icons.inventory_2_rounded, Icons.inventory_2_outlined, S('nav_my_stock')),
+      (Icons.receipt_long_rounded, Icons.receipt_long_outlined, S('nav_orders')),
+      (Icons.person_rounded, Icons.person_outline_rounded, S('nav_profile')),
     ];
     return Container(
       decoration: BoxDecoration(
@@ -774,16 +776,16 @@ class _SD extends State<StockholderDashboard> with TickerProviderStateMixin {
                     duration: const Duration(milliseconds: 200),
                     width: sel ? 40 : 0, height: 3,
                     decoration: BoxDecoration(
-                      gradient: sel ? const LinearGradient(colors: [_sg2, _sg3]) : null,
+                      gradient: sel ? const LinearGradient(colors: [_sp2, _sp3]) : null,
                       borderRadius: BorderRadius.circular(2)),
                   ),
                   const SizedBox(height: 4),
                   Icon(sel ? items[i].$1 : items[i].$2,
-                      color: sel ? _sg2 : _sub, size: 24),
+                      color: sel ? _sp2 : _sub, size: 24),
                   const SizedBox(height: 2),
                   Text(items[i].$3, style: TextStyle(
                       fontSize: 10.5, fontWeight: FontWeight.w700,
-                      color: sel ? _sg2 : _sub)),
+                      color: sel ? _sp2 : _sub)),
                 ]),
               ));
           }),

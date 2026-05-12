@@ -1,15 +1,16 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/stock_service.dart';
 import '../../services/profile_service.dart';
 import '../../services/location_service.dart';
 import '../shared/location_picker_screen.dart';
+import '../../config/language.dart';
 
-const _sg0 = Color(0xFF012B1E);
-const _sg1 = Color(0xFF054F3A);
-const _sg2 = Color(0xFF0A7A56);
-const _sg3 = Color(0xFF0FBB84);
-const _bg  = Color(0xFFF0FBF6);
+const _sp0 = Color(0xFF16002E);
+const _sp1 = Color(0xFF3B0D6B);
+const _sp2 = Color(0xFF7B2FD4);
+const _sp3 = Color(0xFFBB6BF7);
+const _bg  = Color(0xFFF8F0FF);
 const _txt = Color(0xFF212121);
 const _sub = Color(0xFF757575);
 const _amb1 = Color(0xFFAD4A0A);
@@ -56,7 +57,19 @@ class _NDS extends State<NearbyDemandsScreen> {
   final _cats = ['All', 'Grocery', 'Pharmacy', 'Stationary', 'Hardware'];
 
   @override
-  void initState() { super.initState(); _checkLocationThenLoad(); }
+  void initState() {
+    super.initState();
+    appLang.addListener(_onLangChange);
+    _checkLocationThenLoad();
+  }
+
+  void _onLangChange() => setState(() {});
+
+  @override
+  void dispose() {
+    appLang.removeListener(_onLangChange);
+    super.dispose();
+  }
 
   Future<void> _checkLocationThenLoad() async {
     setState(() => _loading = true);
@@ -101,7 +114,7 @@ class _NDS extends State<NearbyDemandsScreen> {
     await ProfileService.saveLocation(result);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      backgroundColor: _sg1,
+      backgroundColor: _sp1,
       content: const Text('Location saved. Loading nearby demands...',
           style: TextStyle(fontWeight: FontWeight.w600))));
     _checkLocationThenLoad();
@@ -121,7 +134,7 @@ class _NDS extends State<NearbyDemandsScreen> {
           Row(children: [
             Container(width: 44, height: 44,
               decoration: const BoxDecoration(
-                gradient: LinearGradient(colors: [_sg1, _sg3]),
+                gradient: LinearGradient(colors: [_sp1, _sp3]),
                 shape: BoxShape.circle),
               child: const Icon(Icons.shopping_basket_rounded, color: Colors.white, size: 22)),
             const SizedBox(width: 12),
@@ -148,15 +161,15 @@ class _NDS extends State<NearbyDemandsScreen> {
           _Tap(onTap: () {
             Navigator.pop(context);
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              backgroundColor: _sg1,
+              backgroundColor: _sp1,
               content: const Text('Post matching stock to fulfill this demand.',
                   style: TextStyle(fontWeight: FontWeight.w600))));
           },
             child: Container(width: double.infinity, height: 48,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [_sg1, _sg3]),
+                gradient: const LinearGradient(colors: [_sp1, _sp3]),
                 borderRadius: BorderRadius.circular(14),
-                boxShadow: [BoxShadow(color: _sg3.withOpacity(.3),
+                boxShadow: [BoxShadow(color: _sp3.withOpacity(.3),
                     blurRadius: 12, offset: const Offset(0, 4))],
               ),
               child: const Center(child: Text('Post Matching Stock',
@@ -168,7 +181,7 @@ class _NDS extends State<NearbyDemandsScreen> {
   }
 
   Widget _dRow(IconData icon, String label, String value) => Row(children: [
-    Icon(icon, size: 16, color: _sg2),
+    Icon(icon, size: 16, color: _sp2),
     const SizedBox(width: 8),
     Text('$label: ', style: const TextStyle(color: _sub, fontSize: 13)),
     Expanded(child: Text(value, style: const TextStyle(
@@ -197,11 +210,11 @@ class _NDS extends State<NearbyDemandsScreen> {
                 margin: const EdgeInsets.only(right: 8),
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                 decoration: BoxDecoration(
-                  gradient: sel ? const LinearGradient(colors: [_sg1, _sg3]) : null,
+                  gradient: sel ? const LinearGradient(colors: [_sp1, _sp3]) : null,
                   color: sel ? null : Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: sel ? Colors.transparent : const Color(0xFFD0EDE0)),
-                  boxShadow: sel ? [BoxShadow(color: _sg3.withOpacity(.25),
+                  border: Border.all(color: sel ? Colors.transparent : const Color(0xFFE8D5FF)),
+                  boxShadow: sel ? [BoxShadow(color: _sp3.withOpacity(.25),
                       blurRadius: 6, offset: const Offset(0, 2))] : null,
                 ),
                 child: Text(_cats[i], style: TextStyle(
@@ -211,20 +224,20 @@ class _NDS extends State<NearbyDemandsScreen> {
           },
         )),
       Expanded(child: _loading
-          ? const Center(child: CircularProgressIndicator(color: _sg2))
+          ? const Center(child: CircularProgressIndicator(color: _sp2))
           : !_hasLocation
               ? _noLocation()
               : RefreshIndicator(
-                  color: _sg2,
+                  color: _sp2,
                   onRefresh: _load,
                   child: _filtered.isEmpty
                       ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
                           Container(width: 64, height: 64,
-                            decoration: BoxDecoration(color: _sg3.withOpacity(.1), shape: BoxShape.circle),
-                            child: const Icon(Icons.search_off_rounded, color: _sg2, size: 30)),
+                            decoration: BoxDecoration(color: _sp3.withOpacity(.1), shape: BoxShape.circle),
+                            child: const Icon(Icons.search_off_rounded, color: _sp2, size: 30)),
                           const SizedBox(height: 14),
-                          const Text('No demands in this category',
-                              style: TextStyle(color: _sub, fontSize: 13)),
+                          Text(S('no_demands_category'),
+                              style: const TextStyle(color: _sub, fontSize: 13)),
                         ]))
                       : ListView.builder(
                           padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
@@ -237,7 +250,7 @@ class _NDS extends State<NearbyDemandsScreen> {
   Widget _buildHeader() => Container(
     decoration: const BoxDecoration(
       gradient: LinearGradient(
-        colors: [_sg0, _sg1, _sg2, _sg3],
+        colors: [_sp0, _sp1, _sp2, _sp3],
         stops: [0.0, 0.35, 0.7, 1.0],
         begin: Alignment.topLeft, end: Alignment.bottomRight,
       ),
@@ -259,12 +272,12 @@ class _NDS extends State<NearbyDemandsScreen> {
                 child: const Icon(Icons.arrow_back_ios_new_rounded,
                     color: Colors.white, size: 17))),
             const SizedBox(width: 14),
-            const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Nearby Demands', style: TextStyle(color: Colors.white,
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(S('nearby_demands_title'), style: const TextStyle(color: Colors.white,
                   fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -.4)),
-              SizedBox(height: 2),
-              Text('Open demands within 10 km',
-                  style: TextStyle(color: Colors.white54, fontSize: 12.5)),
+              const SizedBox(height: 2),
+              Text(S('nearby_demands_subtitle'),
+                  style: const TextStyle(color: Colors.white54, fontSize: 12.5)),
             ])),
             _Tap(onTap: _pickLocation,
               child: Container(
@@ -327,9 +340,9 @@ class _NDS extends State<NearbyDemandsScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [_sg1, _sg3]),
+            gradient: const LinearGradient(colors: [_sp1, _sp3]),
             borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: _sg3.withOpacity(.35),
+            boxShadow: [BoxShadow(color: _sp3.withOpacity(.35),
                 blurRadius: 14, offset: const Offset(0, 6))],
           ),
           child: const Row(mainAxisSize: MainAxisSize.min, children: [
@@ -348,7 +361,7 @@ class _NDS extends State<NearbyDemandsScreen> {
       decoration: BoxDecoration(
         color: Colors.white, borderRadius: BorderRadius.circular(18),
         boxShadow: [
-          BoxShadow(color: _sg1.withOpacity(.06), blurRadius: 14, offset: const Offset(0, 4)),
+          BoxShadow(color: _sp1.withOpacity(.06), blurRadius: 14, offset: const Offset(0, 4)),
           BoxShadow(color: Colors.black.withOpacity(.03), blurRadius: 4, offset: const Offset(0, 2)),
         ],
       ),
@@ -358,8 +371,8 @@ class _NDS extends State<NearbyDemandsScreen> {
           Row(children: [
             Container(width: 46, height: 46,
               decoration: BoxDecoration(
-                color: _sg3.withOpacity(.15), borderRadius: BorderRadius.circular(12)),
-              child: const Icon(Icons.shopping_basket_rounded, color: _sg2, size: 24)),
+                color: _sp3.withOpacity(.15), borderRadius: BorderRadius.circular(12)),
+              child: const Icon(Icons.shopping_basket_rounded, color: _sp2, size: 24)),
             const SizedBox(width: 12),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text((d['product'] as String?) ?? '',
@@ -371,14 +384,14 @@ class _NDS extends State<NearbyDemandsScreen> {
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
               Text((d['qty'] as String?) ?? '',
                   style: const TextStyle(fontSize: 16,
-                      fontWeight: FontWeight.w900, color: _sg2)),
+                      fontWeight: FontWeight.w900, color: _sp2)),
               const Text('needed', style: TextStyle(fontSize: 11, color: _sub)),
             ]),
           ]),
           const SizedBox(height: 12),
           Wrap(spacing: 6, runSpacing: 6, children: [
             _pill(Icons.near_me_rounded,
-                '${(d['distance'] as num?)?.toStringAsFixed(1) ?? '?'} km', _sg2),
+                '${(d['distance'] as num?)?.toStringAsFixed(1) ?? '?'} km', _sp2),
             _pill(Icons.place_outlined, (d['area'] as String?) ?? '', _sub),
             _pill(Icons.access_time_rounded, (d['time'] as String?) ?? '', _sub),
           ]),
@@ -395,9 +408,9 @@ class _NDS extends State<NearbyDemandsScreen> {
           _Tap(onTap: () => _open(d),
             child: Container(width: double.infinity, height: 38,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [_sg1, _sg3]),
+                gradient: const LinearGradient(colors: [_sp1, _sp3]),
                 borderRadius: BorderRadius.circular(10),
-                boxShadow: [BoxShadow(color: _sg3.withOpacity(.25),
+                boxShadow: [BoxShadow(color: _sp3.withOpacity(.25),
                     blurRadius: 8, offset: const Offset(0, 3))],
               ),
               child: const Center(child: Text('View Details',

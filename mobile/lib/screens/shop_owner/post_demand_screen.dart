@@ -5,8 +5,9 @@ import '../../services/demand_service.dart';
 import '../../services/location_service.dart';
 import '../../services/profile_service.dart';
 import '../shared/location_picker_screen.dart';
+import '../../config/language.dart';
 
-// ── palette (mirrors dashboard) ───────────────────────────────────────────────
+// ── palette ───────────────────────────────────────────────────────────────────
 const _c0  = Color(0xFF060D28);
 const _c1  = Color(0xFF0E2260);
 const _c2  = Color(0xFF1F4BD5);
@@ -15,7 +16,6 @@ const _bg  = Color(0xFFF2F5FF);
 const _txt = Color(0xFF212121);
 const _sub = Color(0xFF757575);
 
-// category accent colours
 const _catColors = {
   'Grocery'   : [Color(0xFFAD4A0A), Color(0xFFF5981E)],
   'Pharmacy'  : [Color(0xFF7B1C1C), Color(0xFFEF5350)],
@@ -35,10 +35,17 @@ const _catDesc = {
 
 const _units = ['kg', 'litre', 'piece', 'pack'];
 
-// ── press-scale tap wrapper ───────────────────────────────────────────────────
+// quick-qty presets per unit
+const _qtyPresets = {
+  'kg'    : [10.0, 50.0, 100.0, 500.0],
+  'litre' : [5.0,  20.0, 50.0,  200.0],
+  'piece' : [5.0,  10.0, 50.0,  100.0],
+  'pack'  : [1.0,  5.0,  10.0,  50.0],
+};
+
+// ── tap wrapper ───────────────────────────────────────────────────────────────
 class _Tap extends StatefulWidget {
-  final Widget child;
-  final VoidCallback onTap;
+  final Widget child; final VoidCallback onTap;
   const _Tap({required this.child, required this.onTap});
   @override State<_Tap> createState() => _TapS();
 }
@@ -69,6 +76,9 @@ class PostDemandScreen extends StatefulWidget {
 class _PostDemandScreenState extends State<PostDemandScreen>
     with SingleTickerProviderStateMixin {
 
+  // wizard step: 0=category, 1=product+variant, 2=quantity, 3=location+notes
+  int _step = 0;
+
   List<Map<String, dynamic>> _categories = [];
   List<Map<String, dynamic>> _products   = [];
   List<Map<String, dynamic>> _variants   = [];
@@ -83,31 +93,33 @@ class _PostDemandScreenState extends State<PostDemandScreen>
   LocationResult? _loc;
   bool _loadCats = true, _loadProds = false, _submitting = false;
 
+  late final _pageC = PageController();
   late final _fadeC = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 420));
-  late final _fade  = CurvedAnimation(parent: _fadeC, curve: Curves.easeOut);
+      vsync: this, duration: const Duration(milliseconds: 350));
+  late final _fade = CurvedAnimation(parent: _fadeC, curve: Curves.easeOut);
 
   @override
   void initState() {
     super.initState();
+    appLang.addListener(_onLangChange);
     _loadCategories();
     _prefillLoc();
     _fadeC.forward();
   }
 
+  void _onLangChange() => setState(() {});
+
   @override
   void dispose() {
+    appLang.removeListener(_onLangChange);
     _qtyC.dispose(); _notesC.dispose(); _searchC.dispose();
-    _fadeC.dispose();
+    _fadeC.dispose(); _pageC.dispose();
     super.dispose();
   }
 
   Future<void> _prefillLoc() async {
-    // 1. Use local cache instantly — no network wait
     final cached = await ProfileService.getCachedLocation();
     if (cached != null && mounted) setState(() => _loc = cached);
-
-    // 2. Sync from network in the background; update if different
     final profile = await ProfileService.getProfile();
     if (!mounted) return;
     final prof = (profile?['profile'] as Map?) ?? {};
@@ -118,7 +130,7 @@ class _PostDemandScreenState extends State<PostDemandScreen>
       setState(() => _loc = LocationResult(
         lat: lat, lng: lng,
         address: addr.isNotEmpty ? addr : '${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}',
-        area:     (prof['area']     as String?) ?? '',
+        area: (prof['area'] as String?) ?? '',
         district: (prof['district'] as String?) ?? '',
       ));
     }
@@ -140,6 +152,7 @@ class _PostDemandScreenState extends State<PostDemandScreen>
     final prods = await DemandService.getProductsByCategory(cat['category_id'] as int);
     if (!mounted) return;
     setState(() { _products = prods; _loadProds = false; });
+    _goTo(1);
   }
 
   void _pickProd(Map<String, dynamic> p) {
@@ -159,41 +172,30 @@ class _PostDemandScreenState extends State<PostDemandScreen>
     if (r != null && mounted) setState(() => _loc = r);
   }
 
+  void _goTo(int step) {
+    setState(() => _step = step);
+    _pageC.animateToPage(step,
+        duration: const Duration(milliseconds: 320), curve: Curves.easeInOut);
+  }
+
+  void _back() {
+    if (_step == 0) { Navigator.pop(context); return; }
+    _goTo(_step - 1);
+  }
+
+  bool get _canNext {
+    if (_step == 0) return _selCat != null;
+    if (_step == 1) return _selProd != null && _selVar != null;
+    if (_step == 2) {
+      final qty = double.tryParse(_qtyC.text.trim());
+      return qty != null && qty > 0;
+    }
+    return _loc != null;
+  }
+
   Future<void> _submit() async {
-    if (_selCat  == null) return _err('Pick a category');
-    if (_selProd == null) return _err('Pick a product');
-    if (_selVar  == null) return _err('Pick a variant');
-    final qty = double.tryParse(_qtyC.text.trim());
-    if (qty == null || qty <= 0) return _err('Enter a valid quantity');
-    if (_loc == null) return _err('Set your delivery location');
-
-    final ok = await showDialog<bool>(context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-        title: const Text('Post this demand?',
-            style: TextStyle(fontWeight: FontWeight.w800)),
-        content: Text(
-          '${qty % 1 == 0 ? qty.toInt() : qty} $_unit of '
-          '${_selProd!['name']} (${_selVar!['variant_name']}) '
-          'in ${_loc!.area.isNotEmpty ? _loc!.area : 'your location'}.\n\n'
-          'Nearby suppliers will be notified.',
-          style: const TextStyle(color: _sub, height: 1.5)),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false),
-              child: const Text('Edit')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFD03800),
-                foregroundColor: Colors.white, elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-            child: const Text('Post Now', style: TextStyle(fontWeight: FontWeight.w700)),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return;
-
+    if (!_canNext) { _err('Set your delivery location'); return; }
+    final qty = double.tryParse(_qtyC.text.trim())!;
     setState(() => _submitting = true);
     final res = await DemandService.createDemand(
       productId: _selProd!['product_id'] as int,
@@ -205,30 +207,61 @@ class _PostDemandScreenState extends State<PostDemandScreen>
     );
     if (!mounted) return;
     setState(() => _submitting = false);
-
     if (res['statusCode'] == 201) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        backgroundColor: Color(0xFF2E7D32),
-        content: Text('Demand posted! Suppliers will be notified.',
-            style: TextStyle(fontWeight: FontWeight.w600))));
-      Navigator.pop(context, true);
+      HapticFeedback.heavyImpact();
+      await _showSuccess(qty);
+      if (mounted) Navigator.pop(context, true);
     } else {
       _err(res['error']?.toString() ?? 'Failed to post demand');
     }
   }
 
-  void _err(String msg) => ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(backgroundColor: const Color(0xFFC62828), content: Text(msg)));
+  Future<void> _showSuccess(double qty) => showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      child: Padding(padding: const EdgeInsets.all(28),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(width: 72, height: 72,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [_c1, _c3],
+                  begin: Alignment.topLeft, end: Alignment.bottomRight),
+              shape: BoxShape.circle,
+              boxShadow: [BoxShadow(color: _c3.withOpacity(.4),
+                  blurRadius: 18, offset: const Offset(0, 6))],
+            ),
+            child: const Icon(Icons.check_rounded, color: Colors.white, size: 36)),
+          const SizedBox(height: 18),
+          const Text('Demand Posted!', style: TextStyle(
+              fontSize: 20, fontWeight: FontWeight.w900, color: _txt)),
+          const SizedBox(height: 8),
+          Text(
+            '${qty % 1 == 0 ? qty.toInt() : qty} $_unit of '
+            '${_selProd!['name']} (${_selVar!['variant_name']})\n'
+            'Nearby suppliers will be notified.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: _sub, fontSize: 13.5, height: 1.5)),
+          const SizedBox(height: 24),
+          _Tap(onTap: () => Navigator.pop(context),
+            child: Container(width: double.infinity, height: 50,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [_c1, _c3]),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [BoxShadow(color: _c3.withOpacity(.35),
+                    blurRadius: 14, offset: const Offset(0, 6))],
+              ),
+              child: const Center(child: Text('Done',
+                  style: TextStyle(color: Colors.white,
+                      fontSize: 16, fontWeight: FontWeight.w900))))),
+        ]),
+      ),
+    ),
+  );
 
-  // ── current step (1-based) ────────────────────────────────────────────────
-  int get _step {
-    if (_selCat  == null) return 1;
-    if (_selProd == null) return 2;
-    if (_selVar  == null) return 3;
-    if (_qtyC.text.trim().isEmpty) return 4;
-    if (_loc == null) return 5;
-    return 6;
-  }
+  void _err(String msg) => ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(backgroundColor: const Color(0xFFC62828),
+        content: Text(msg, style: const TextStyle(fontWeight: FontWeight.w600))));
 
   // ════════════════════════════════════════════════════════════════════════════
   @override
@@ -237,64 +270,28 @@ class _PostDemandScreenState extends State<PostDemandScreen>
     child: Scaffold(
       backgroundColor: _bg,
       body: _loadCats
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: _c2))
           : FadeTransition(
               opacity: _fade,
               child: Column(children: [
                 _header(),
-                Expanded(child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    _progressBar(),
-                    const SizedBox(height: 28),
-
-                    _sectionTitle(1, 'What do you need?', Icons.category_rounded),
-                    const SizedBox(height: 14),
-                    _categoryGrid(),
-
-                    if (_selCat != null) ...[
-                      const SizedBox(height: 28),
-                      _sectionTitle(2, 'Pick a product', Icons.inventory_2_rounded),
-                      const SizedBox(height: 14),
-                      _loadProds
-                          ? _shimmerBox(120)
-                          : _productSection(),
-                    ],
-
-                    if (_variants.isNotEmpty) ...[
-                      const SizedBox(height: 28),
-                      _sectionTitle(3, 'Pick type / variant', Icons.tune_rounded),
-                      const SizedBox(height: 14),
-                      _variantChips(),
-                    ],
-
-                    if (_selVar != null) ...[
-                      const SizedBox(height: 28),
-                      _sectionTitle(4, 'How much?', Icons.scale_rounded),
-                      const SizedBox(height: 14),
-                      _quantitySection(),
-
-                      const SizedBox(height: 28),
-                      _sectionTitle(5, 'Delivery location', Icons.location_on_rounded),
-                      const SizedBox(height: 14),
-                      _locationCard(),
-
-                      const SizedBox(height: 28),
-                      _sectionTitle(6, 'Notes (optional)', Icons.edit_note_rounded),
-                      const SizedBox(height: 14),
-                      _notesField(),
-
-                      const SizedBox(height: 32),
-                      _submitBtn(),
-                    ],
-                  ]),
+                Expanded(child: PageView(
+                  controller: _pageC,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: [
+                    _stepPage(_categoryStep()),
+                    _stepPage(_productStep()),
+                    _stepPage(_quantityStep()),
+                    _stepPage(_locationStep()),
+                  ],
                 )),
+                _bottomBar(),
               ]),
             ),
     ),
   );
 
-  // ── gradient header ───────────────────────────────────────────────────────
+  // ── header ────────────────────────────────────────────────────────────────
   Widget _header() => Container(
     decoration: const BoxDecoration(
       gradient: LinearGradient(
@@ -302,268 +299,254 @@ class _PostDemandScreenState extends State<PostDemandScreen>
         stops: [0.0, 0.35, 0.72, 1.0],
         begin: Alignment.topLeft, end: Alignment.bottomRight),
       borderRadius: BorderRadius.only(
-        bottomLeft: Radius.circular(32), bottomRight: Radius.circular(32)),
+        bottomLeft: Radius.circular(28), bottomRight: Radius.circular(28)),
     ),
     child: SafeArea(bottom: false,
       child: Stack(children: [
-        // decorative blobs
         Positioned(top: -20, right: -30, child: _blob(130, Colors.white, .04)),
         Positioned(top: 8,   right: 50,  child: _blob(44,  _c2, .35)),
         Positioned(top: 40,  left: -20,  child: _blob(80,  _c3, .22)),
         Padding(
-          padding: const EdgeInsets.fromLTRB(8, 8, 20, 22),
-          child: Row(children: [
-            // back button
-            ClipRRect(borderRadius: BorderRadius.circular(12),
-              child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                child: _Tap(onTap: () => Navigator.pop(context),
-                  child: Container(width: 42, height: 42,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.14),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withOpacity(0.25)),
-                    ),
-                    child: const Icon(Icons.arrow_back_ios_new_rounded,
-                        color: Colors.white, size: 17)),
+          padding: const EdgeInsets.fromLTRB(8, 8, 20, 20),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              ClipRRect(borderRadius: BorderRadius.circular(12),
+                child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                  child: _Tap(onTap: _back,
+                    child: Container(width: 42, height: 42,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.14),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white.withOpacity(0.25)),
+                      ),
+                      child: const Icon(Icons.arrow_back_ios_new_rounded,
+                          color: Colors.white, size: 17)),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Post a Demand',
-                  style: TextStyle(color: Colors.white, fontSize: 20,
-                      fontWeight: FontWeight.w900, letterSpacing: -.4)),
-              const SizedBox(height: 2),
-              Text('Suppliers near you respond instantly',
-                  style: TextStyle(color: Colors.white.withOpacity(0.65), fontSize: 12.5)),
-            ])),
-            // step badge
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withOpacity(0.25)),
+              const SizedBox(width: 14),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(_stepTitles[_step],
+                    style: const TextStyle(color: Colors.white, fontSize: 20,
+                        fontWeight: FontWeight.w900, letterSpacing: -.4)),
+                const SizedBox(height: 2),
+                Text(_stepSubtitles[_step],
+                    style: TextStyle(color: Colors.white.withOpacity(0.65), fontSize: 12.5)),
+              ])),
+              // step indicator pill
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withOpacity(0.25)),
+                ),
+                child: Text('${_step + 1} / 4',
+                    style: const TextStyle(color: Colors.white,
+                        fontSize: 12, fontWeight: FontWeight.w700)),
               ),
-              child: Text('Step $_step / 6',
-                  style: const TextStyle(color: Colors.white,
-                      fontSize: 12, fontWeight: FontWeight.w700)),
-            ),
+            ]),
+            const SizedBox(height: 14),
+            _progressBar(),
           ]),
         ),
       ]),
     ),
   );
 
-  Widget _blob(double sz, Color c, double op) =>
-      Container(width: sz, height: sz,
-          decoration: BoxDecoration(shape: BoxShape.circle,
-              color: c.withOpacity(op)));
+  static const _stepTitles = [
+    'What do you need?',
+    'Pick product & type',
+    'How much?',
+    'Delivery details',
+  ];
+  static const _stepSubtitles = [
+    'Choose a category to get started',
+    'Search and select the exact item',
+    'Set quantity and unit',
+    'Location and any extra notes',
+  ];
 
-  // ── step progress bar ─────────────────────────────────────────────────────
   Widget _progressBar() {
-    const total = 6;
-    final done = (_step - 1).clamp(0, total);
-    return Column(children: [
-      Row(children: List.generate(total, (i) {
-        final active  = i < done;
-        final current = i == done;
-        return Expanded(child: Row(children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 350),
-            width: 28, height: 28,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: active || current ? const LinearGradient(
-                  colors: [_c1, _c3], begin: Alignment.topLeft, end: Alignment.bottomRight)
-                  : null,
-              color: active || current ? null : Colors.white,
-              border: Border.all(
-                color: active || current ? _c2 : const Color(0xFFDDE0F0), width: 1.5),
-              boxShadow: current ? [BoxShadow(color: _c2.withOpacity(.4),
-                  blurRadius: 10, offset: const Offset(0, 3))] : null,
-            ),
-            child: Center(child: active
-                ? const Icon(Icons.check_rounded, color: Colors.white, size: 13)
-                : Text('${i + 1}', style: TextStyle(
-                    color: current ? Colors.white : _sub,
-                    fontSize: 11, fontWeight: FontWeight.w700))),
-          ),
-          if (i < total - 1) Expanded(child: AnimatedContainer(
-            duration: const Duration(milliseconds: 350),
-            height: 2,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(2),
-              gradient: active ? const LinearGradient(colors: [_c1, _c3]) : null,
-              color: active ? null : const Color(0xFFDDE0F0),
-            ),
-          )),
-        ]));
-      })),
-    ]);
-  }
-
-  // ── section title ─────────────────────────────────────────────────────────
-  Widget _sectionTitle(int n, String label, IconData icon) {
-    final done = n < _step;
-    return Row(children: [
-      Container(width: 36, height: 36,
-        decoration: BoxDecoration(
-          gradient: done || n == _step
-              ? const LinearGradient(colors: [_c1, _c3],
-                  begin: Alignment.topLeft, end: Alignment.bottomRight)
-              : null,
-          color: done || n == _step ? null : Colors.white,
-          borderRadius: BorderRadius.circular(11),
-          border: Border.all(color: done || n == _step ? _c2 : const Color(0xFFDDE0F0)),
-          boxShadow: n == _step ? [BoxShadow(color: _c2.withOpacity(.3),
-              blurRadius: 10, offset: const Offset(0, 4))] : null,
-        ),
-        child: Icon(done ? Icons.check_rounded : icon,
-            color: done || n == _step ? Colors.white : _sub, size: 17)),
-      const SizedBox(width: 12),
-      Text(label, style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800,
-          color: n <= _step ? _txt : _sub, letterSpacing: -.2)),
-      if (done) ...[
-        const Spacer(),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+    return Row(children: List.generate(4, (i) {
+      final done    = i < _step;
+      final current = i == _step;
+      return Expanded(child: Row(children: [
+        Expanded(child: AnimatedContainer(
+          duration: const Duration(milliseconds: 350),
+          height: 5,
           decoration: BoxDecoration(
-            color: const Color(0xFF054F3A).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(20)),
-          child: const Text('Done', style: TextStyle(color: Color(0xFF0FBB84),
-              fontSize: 11, fontWeight: FontWeight.w700)),
-        ),
-      ],
-    ]);
+            borderRadius: BorderRadius.circular(3),
+            color: done
+                ? Colors.white
+                : current
+                    ? Colors.white.withOpacity(.65)
+                    : Colors.white.withOpacity(.22),
+          ),
+        )),
+        if (i < 3) const SizedBox(width: 5),
+      ]));
+    }));
   }
 
-  // ── category grid ─────────────────────────────────────────────────────────
-  Widget _categoryGrid() => LayoutBuilder(
-    builder: (ctx, constraints) {
-      final cellW = (constraints.maxWidth - 12) / 2;
-      final ratio = cellW / 110;
-      return GridView.count(
-    crossAxisCount: 2,
-    shrinkWrap: true,
-    physics: const NeverScrollableScrollPhysics(),
-    mainAxisSpacing: 12, crossAxisSpacing: 12,
-    childAspectRatio: ratio.clamp(1.1, 1.6),
-    children: _categories.map((c) {
-      final name = c['name'] as String;
-      final colors = _catColors[name] ?? [_c1, _c2];
-      final emoji  = _catEmoji[name]  ?? '📦';
-      final desc   = _catDesc[name]   ?? '';
-      final sel    = _selCat?['category_id'] == c['category_id'];
-      return _Tap(onTap: () => _pickCat(c), child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        decoration: BoxDecoration(
-          gradient: sel ? LinearGradient(colors: colors,
-              begin: Alignment.topLeft, end: Alignment.bottomRight) : null,
-          color: sel ? null : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: sel ? colors.last : const Color(0xFFE4E8F5), width: sel ? 0 : 1.5),
-          boxShadow: sel
-              ? [BoxShadow(color: colors.last.withOpacity(.42),
-                  blurRadius: 20, spreadRadius: -3, offset: const Offset(0, 8))]
-              : [BoxShadow(color: _c1.withOpacity(.06),
-                  blurRadius: 12, offset: const Offset(0, 4))],
-        ),
-        child: Stack(children: [
-          if (sel) Positioned(right: -12, bottom: -12,
-            child: Text(emoji, style: const TextStyle(fontSize: 56))),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center, children: [
-              Text(emoji, style: const TextStyle(fontSize: 28)),
-              const SizedBox(height: 8),
-              Text(name, style: TextStyle(
-                  color: sel ? Colors.white : _txt,
-                  fontSize: 14, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 3),
-              Text(desc, maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      color: sel ? Colors.white.withOpacity(.7) : _sub,
-                      fontSize: 11)),
-            ]),
-          ),
-        ]),
-      ));
-    }).toList(),
-      );
-    },
+  // ── step wrapper ──────────────────────────────────────────────────────────
+  Widget _stepPage(Widget content) => SingleChildScrollView(
+    padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+    child: content,
   );
 
-  // ── product section ───────────────────────────────────────────────────────
-  Widget _productSection() {
-    if (_products.isEmpty) return _emptyBox('No products in this category');
-    final q = _q.trim().toLowerCase();
-    final list = q.isEmpty ? _products
-        : _products.where((p) => (p['name'] as String).toLowerCase().contains(q)).toList();
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      // search
-      Container(
-        decoration: BoxDecoration(
-          color: Colors.white, borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: _c1.withOpacity(.07),
-              blurRadius: 14, offset: const Offset(0, 5))],
-        ),
-        child: TextField(
-          controller: _searchC,
-          onChanged: (v) => setState(() => _q = v),
-          decoration: InputDecoration(
-            hintText: 'Search products...',
-            hintStyle: TextStyle(color: _sub.withOpacity(.7), fontSize: 13.5),
-            prefixIcon: const Icon(Icons.search_rounded, color: _sub, size: 20),
-            suffixIcon: _q.isNotEmpty ? IconButton(
-              icon: const Icon(Icons.close_rounded, color: _sub, size: 18),
-              onPressed: () { _searchC.clear(); setState(() => _q = ''); }) : null,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: _c2, width: 1.5)),
-            filled: true, fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(vertical: 14),
-          ),
+  // ── step 0: category ──────────────────────────────────────────────────────
+  Widget _categoryStep() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    _label('Choose a category'),
+    const SizedBox(height: 14),
+    LayoutBuilder(builder: (ctx, c) {
+      final w = (c.maxWidth - 12) / 2;
+      return GridView.count(
+        crossAxisCount: 2, shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        mainAxisSpacing: 12, crossAxisSpacing: 12,
+        childAspectRatio: (w / 110).clamp(1.1, 1.6),
+        children: _categories.map((cat) {
+          final name = cat['name'] as String;
+          final colors = _catColors[name] ?? [_c1, _c2];
+          final emoji  = _catEmoji[name]  ?? '📦';
+          final desc   = _catDesc[name]   ?? '';
+          final sel    = _selCat?['category_id'] == cat['category_id'];
+          return _Tap(onTap: () => _pickCat(cat),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              decoration: BoxDecoration(
+                gradient: sel ? LinearGradient(colors: colors,
+                    begin: Alignment.topLeft, end: Alignment.bottomRight) : null,
+                color: sel ? null : Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                    color: sel ? colors.last : const Color(0xFFE4E8F5),
+                    width: sel ? 0 : 1.5),
+                boxShadow: sel
+                    ? [BoxShadow(color: colors.last.withOpacity(.42),
+                        blurRadius: 20, spreadRadius: -3, offset: const Offset(0, 8))]
+                    : [BoxShadow(color: _c1.withOpacity(.06),
+                        blurRadius: 12, offset: const Offset(0, 4))],
+              ),
+              child: Stack(children: [
+                if (sel) Positioned(right: -12, bottom: -12,
+                  child: Text(emoji, style: const TextStyle(fontSize: 56))),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center, children: [
+                    Text(emoji, style: const TextStyle(fontSize: 28)),
+                    const SizedBox(height: 8),
+                    Text(name, style: TextStyle(
+                        color: sel ? Colors.white : _txt,
+                        fontSize: 14, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 3),
+                    Text(desc, maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            color: sel ? Colors.white.withOpacity(.7) : _sub,
+                            fontSize: 11)),
+                  ]),
+                ),
+              ]),
+            ),
+          );
+        }).toList(),
+      );
+    }),
+  ]);
+
+  // ── step 1: product + variant ─────────────────────────────────────────────
+  Widget _productStep() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    if (_selCat != null) ...[
+      // category pill recap
+      _recapChip(
+          _catEmoji[_selCat!['name']] ?? '📦',
+          _selCat!['name'] as String,
+          onTap: () => _goTo(0)),
+      const SizedBox(height: 20),
+    ],
+
+    _label('Search product'),
+    const SizedBox(height: 10),
+    Container(
+      decoration: BoxDecoration(
+        color: Colors.white, borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: _c1.withOpacity(.07),
+            blurRadius: 14, offset: const Offset(0, 5))],
+      ),
+      child: TextField(
+        controller: _searchC,
+        onChanged: (v) => setState(() => _q = v),
+        decoration: InputDecoration(
+          hintText: S('search_products_hint'),
+          hintStyle: TextStyle(color: _sub.withOpacity(.7), fontSize: 13.5),
+          prefixIcon: const Icon(Icons.search_rounded, color: _sub, size: 20),
+          suffixIcon: _q.isNotEmpty
+              ? IconButton(icon: const Icon(Icons.close_rounded, color: _sub, size: 18),
+                  onPressed: () { _searchC.clear(); setState(() => _q = ''); })
+              : null,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: _c2, width: 1.5)),
+          filled: true, fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(vertical: 14),
         ),
       ),
-      const SizedBox(height: 14),
-      if (list.isEmpty)
-        _emptyBox('No products match "$_q"')
-      else
-        Wrap(spacing: 8, runSpacing: 8,
-          children: list.map((p) {
-            final sel = _selProd?['product_id'] == p['product_id'];
-            return _Tap(onTap: () => _pickProd(p),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-                decoration: BoxDecoration(
-                  gradient: sel ? const LinearGradient(
-                      colors: [_c1, _c3], begin: Alignment.topLeft,
-                      end: Alignment.bottomRight) : null,
-                  color: sel ? null : Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                      color: sel ? _c2 : const Color(0xFFE4E8F5), width: 1.5),
-                  boxShadow: sel ? [BoxShadow(color: _c2.withOpacity(.38),
-                      blurRadius: 14, offset: const Offset(0, 5))] : null,
-                ),
-                child: Text(p['name'] as String,
-                    style: TextStyle(
-                        color: sel ? Colors.white : _txt,
-                        fontWeight: FontWeight.w700, fontSize: 13.5)),
-              ),
-            );
-          }).toList()),
-    ]);
+    ),
+    const SizedBox(height: 16),
+
+    if (_loadProds)
+      const Center(child: Padding(
+        padding: EdgeInsets.all(32),
+        child: CircularProgressIndicator(color: _c2, strokeWidth: 2)))
+    else ...[
+      _productChips(),
+      if (_selProd != null && _variants.isNotEmpty) ...[
+        const SizedBox(height: 24),
+        _label('Select type / variant'),
+        const SizedBox(height: 10),
+        _variantChips(),
+      ],
+    ],
+  ]);
+
+  Widget _productChips() {
+    final q = _q.trim().toLowerCase();
+    final list = q.isEmpty ? _products
+        : _products.where((p) =>
+            (p['name'] as String).toLowerCase().contains(q)).toList();
+    if (list.isEmpty) return _emptyBox(q.isEmpty
+        ? 'No products in this category' : 'No products match "$_q"');
+    return Wrap(spacing: 8, runSpacing: 8,
+      children: list.map((p) {
+        final sel = _selProd?['product_id'] == p['product_id'];
+        return _Tap(onTap: () => _pickProd(p),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+            decoration: BoxDecoration(
+              gradient: sel ? const LinearGradient(
+                  colors: [_c1, _c3], begin: Alignment.topLeft,
+                  end: Alignment.bottomRight) : null,
+              color: sel ? null : Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                  color: sel ? _c2 : const Color(0xFFE4E8F5), width: 1.5),
+              boxShadow: sel ? [BoxShadow(color: _c2.withOpacity(.38),
+                  blurRadius: 14, offset: const Offset(0, 5))] : null,
+            ),
+            child: Text(p['name'] as String,
+                style: TextStyle(color: sel ? Colors.white : _txt,
+                    fontWeight: FontWeight.w700, fontSize: 13.5)),
+          ),
+        );
+      }).toList());
   }
 
-  // ── variant chips ─────────────────────────────────────────────────────────
   Widget _variantChips() => Wrap(spacing: 8, runSpacing: 8,
     children: _variants.map((v) {
       final sel = _selVar?['variant_id'] == v['variant_id'];
@@ -573,80 +556,146 @@ class _PostDemandScreenState extends State<PostDemandScreen>
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
           decoration: BoxDecoration(
             gradient: sel ? const LinearGradient(
-                colors: [Color(0xFF054F3A), Color(0xFF0FBB84)],
-                begin: Alignment.topLeft, end: Alignment.bottomRight) : null,
+                colors: [_c1, _c3], begin: Alignment.topLeft,
+                end: Alignment.bottomRight) : null,
             color: sel ? null : Colors.white,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-                color: sel ? const Color(0xFF0FBB84) : const Color(0xFFE4E8F5),
-                width: 1.5),
-            boxShadow: sel ? [BoxShadow(color: const Color(0xFF0FBB84).withOpacity(.38),
+                color: sel ? _c2 : const Color(0xFFE4E8F5), width: 1.5),
+            boxShadow: sel ? [BoxShadow(color: _c2.withOpacity(.38),
                 blurRadius: 14, offset: const Offset(0, 5))] : null,
           ),
           child: Text(v['variant_name'] as String,
-              style: TextStyle(
-                  color: sel ? Colors.white : _txt,
+              style: TextStyle(color: sel ? Colors.white : _txt,
                   fontWeight: FontWeight.w700, fontSize: 13.5)),
         ),
       );
     }).toList(),
   );
 
-  // ── quantity section ──────────────────────────────────────────────────────
-  Widget _quantitySection() => Container(
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(
-      color: Colors.white, borderRadius: BorderRadius.circular(22),
-      boxShadow: [BoxShadow(color: _c1.withOpacity(.07),
-          blurRadius: 16, offset: const Offset(0, 5))],
-    ),
-    child: Column(children: [
-      TextField(
-        controller: _qtyC,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        textAlign: TextAlign.center,
-        onChanged: (_) => setState(() {}),
-        style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w900,
-            color: _txt, letterSpacing: -1),
-        decoration: const InputDecoration(
-          hintText: '0',
-          hintStyle: TextStyle(color: Color(0xFFCDD0E3), fontSize: 38,
-              fontWeight: FontWeight.w900),
-          border: InputBorder.none, enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
-          contentPadding: EdgeInsets.zero,
-        ),
-      ),
-      const Divider(height: 24),
-      Row(children: _units.map((u) {
-        final sel = _unit == u;
-        return Expanded(child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: _Tap(onTap: () => setState(() => _unit = u),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                gradient: sel ? const LinearGradient(
-                    colors: [_c1, _c3], begin: Alignment.topLeft,
-                    end: Alignment.bottomRight) : null,
-                color: sel ? null : const Color(0xFFF2F5FF),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: sel ? [BoxShadow(color: _c2.withOpacity(.35),
-                    blurRadius: 10, offset: const Offset(0, 4))] : null,
-              ),
-              alignment: Alignment.center,
-              child: Text(u, style: TextStyle(
-                  color: sel ? Colors.white : _sub,
-                  fontWeight: FontWeight.w800, fontSize: 13.5)),
-            ),
-          ),
-        ));
-      }).toList()),
-    ]),
-  );
+  // ── step 2: quantity ──────────────────────────────────────────────────────
+  Widget _quantityStep() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    // recap
+    if (_selProd != null)
+      _recapChip('📦', '${_selProd!['name']} · ${_selVar?['variant_name'] ?? ''}',
+          onTap: () => _goTo(1)),
+    const SizedBox(height: 20),
 
-  // ── location card ─────────────────────────────────────────────────────────
+    // big qty input
+    Container(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+      decoration: BoxDecoration(
+        color: Colors.white, borderRadius: BorderRadius.circular(24),
+        boxShadow: [BoxShadow(color: _c1.withOpacity(.08),
+            blurRadius: 20, offset: const Offset(0, 6))],
+      ),
+      child: Column(children: [
+        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Expanded(child: TextField(
+            controller: _qtyC,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textAlign: TextAlign.center,
+            onChanged: (_) => setState(() {}),
+            style: const TextStyle(fontSize: 52, fontWeight: FontWeight.w900,
+                color: _txt, letterSpacing: -2),
+            decoration: const InputDecoration(
+              hintText: '0',
+              hintStyle: TextStyle(color: Color(0xFFCDD0E3), fontSize: 52,
+                  fontWeight: FontWeight.w900, letterSpacing: -2),
+              border: InputBorder.none, enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              contentPadding: EdgeInsets.zero,
+            ),
+          )),
+          const SizedBox(width: 12),
+          // unit selector
+          Column(crossAxisAlignment: CrossAxisAlignment.end,
+              children: _units.map((u) {
+            final sel = _unit == u;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: _Tap(onTap: () { HapticFeedback.selectionClick(); setState(() => _unit = u); },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                  decoration: BoxDecoration(
+                    gradient: sel ? const LinearGradient(colors: [_c1, _c3],
+                        begin: Alignment.topLeft, end: Alignment.bottomRight) : null,
+                    color: sel ? null : _bg,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: sel ? [BoxShadow(color: _c2.withOpacity(.3),
+                        blurRadius: 8, offset: const Offset(0, 3))] : null,
+                  ),
+                  child: Text(u, style: TextStyle(
+                      color: sel ? Colors.white : _sub,
+                      fontWeight: FontWeight.w800, fontSize: 13)),
+                ),
+              ),
+            );
+          }).toList()),
+        ]),
+        const Divider(height: 8, color: Color(0xFFF0F2FA)),
+        const SizedBox(height: 12),
+        // quick presets
+        Row(children: (_qtyPresets[_unit] ?? []).map((q) {
+          final label = q % 1 == 0 ? '${q.toInt()}' : '$q';
+          final isCurrent = _qtyC.text == label;
+          return Expanded(child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 3),
+            child: _Tap(onTap: () {
+              HapticFeedback.selectionClick();
+              _qtyC.text = label;
+              setState(() {});
+            },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  gradient: isCurrent ? const LinearGradient(
+                      colors: [_c1, _c3], begin: Alignment.topLeft,
+                      end: Alignment.bottomRight) : null,
+                  color: isCurrent ? null : _bg,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                      color: isCurrent ? Colors.transparent
+                          : const Color(0xFFDDE0F0)),
+                ),
+                child: Text(label,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        color: isCurrent ? Colors.white : _sub,
+                        fontWeight: FontWeight.w800, fontSize: 13)),
+              ),
+            ),
+          ));
+        }).toList()),
+        const SizedBox(height: 4),
+        Text('Quick select $_unit',
+            style: const TextStyle(color: _sub, fontSize: 11, fontWeight: FontWeight.w500)),
+      ]),
+    ),
+  ]);
+
+  // ── step 3: location + notes ──────────────────────────────────────────────
+  Widget _locationStep() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    // recap pill
+    if (_selProd != null) ...[
+      _recapChip('📦',
+          '${_qtyC.text.isNotEmpty ? _qtyC.text : '?'} $_unit · ${_selProd!['name']} (${_selVar?['variant_name'] ?? ''})',
+          onTap: () => _goTo(2)),
+      const SizedBox(height: 20),
+    ],
+
+    _label('Delivery location *'),
+    const SizedBox(height: 10),
+    _locationCard(),
+
+    const SizedBox(height: 24),
+    _label('Notes (optional)'),
+    const SizedBox(height: 10),
+    _notesField(),
+  ]);
+
   Widget _locationCard() => _Tap(onTap: _pickLoc,
     child: Container(
       padding: const EdgeInsets.all(16),
@@ -662,7 +711,8 @@ class _PostDemandScreenState extends State<PostDemandScreen>
         Container(width: 48, height: 48,
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: _loc != null ? [_c1, _c2] : [const Color(0xFFE4E8F5), const Color(0xFFEEF0FA)],
+              colors: _loc != null ? [_c1, _c2]
+                  : [const Color(0xFFE4E8F5), const Color(0xFFEEF0FA)],
               begin: Alignment.topLeft, end: Alignment.bottomRight),
             borderRadius: BorderRadius.circular(14),
             boxShadow: _loc != null ? [BoxShadow(color: _c2.withOpacity(.35),
@@ -677,7 +727,7 @@ class _PostDemandScreenState extends State<PostDemandScreen>
                     style: const TextStyle(fontSize: 13.5,
                         fontWeight: FontWeight.w700, color: _txt)),
                 const SizedBox(height: 3),
-                Text('From your saved shop address · tap to change for this order',
+                Text('From your shop address · tap to change',
                     style: TextStyle(fontSize: 11, color: _c2.withOpacity(.75),
                         fontWeight: FontWeight.w500)),
               ])
@@ -685,7 +735,7 @@ class _PostDemandScreenState extends State<PostDemandScreen>
                 Text('Set delivery location', style: TextStyle(
                     fontSize: 14, fontWeight: FontWeight.w700, color: _txt)),
                 SizedBox(height: 3),
-                Text('Tap to pick on map', style: TextStyle(
+                Text('Tap to pick on map or use GPS', style: TextStyle(
                     fontSize: 12, color: _sub)),
               ])),
         Container(
@@ -697,7 +747,6 @@ class _PostDemandScreenState extends State<PostDemandScreen>
     ),
   );
 
-  // ── notes field ───────────────────────────────────────────────────────────
   Widget _notesField() => Container(
     decoration: BoxDecoration(
       color: Colors.white, borderRadius: BorderRadius.circular(20),
@@ -708,7 +757,7 @@ class _PostDemandScreenState extends State<PostDemandScreen>
       controller: _notesC,
       maxLines: 3,
       decoration: InputDecoration(
-        hintText: 'e.g. need by tomorrow morning, specific brand...',
+        hintText: S('notes_hint'),
         hintStyle: TextStyle(color: _sub.withOpacity(.7), fontSize: 13),
         prefixIcon: const Padding(
           padding: EdgeInsets.only(left: 14, right: 10, top: 14),
@@ -726,48 +775,131 @@ class _PostDemandScreenState extends State<PostDemandScreen>
     ),
   );
 
-  // ── submit button ─────────────────────────────────────────────────────────
-  Widget _submitBtn() => _Tap(
-    onTap: _submitting ? () {} : _submit,
-    child: Container(
-      width: double.infinity,
-      height: 58,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF7C1A00), Color(0xFFD03800),
-                   Color(0xFFF06000), Color(0xFFFF9500)],
-          stops: [0.0, 0.32, 0.68, 1.0],
-          begin: Alignment.topLeft, end: Alignment.bottomRight),
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(color: const Color(0xFFD03800).withOpacity(.45),
-              blurRadius: 22, spreadRadius: -2, offset: const Offset(0, 10)),
-        ],
-        border: Border.all(color: Colors.white.withOpacity(.12)),
-      ),
-      child: Stack(children: [
-        // gloss
-        Positioned.fill(child: ClipRRect(borderRadius: BorderRadius.circular(18),
-          child: Align(alignment: Alignment.topCenter,
-            child: FractionallySizedBox(heightFactor: .45, widthFactor: 1,
-              child: Container(decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                  colors: [Colors.white.withOpacity(.18), Colors.transparent]))))))),
-        Center(child: _submitting
-            ? const SizedBox(width: 22, height: 22,
-                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-            : const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Icon(Icons.send_rounded, color: Colors.white, size: 20),
-                SizedBox(width: 10),
-                Text('Post Demand', style: TextStyle(color: Colors.white,
-                    fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: .2)),
-              ])),
-      ]),
+  // ── bottom action bar ─────────────────────────────────────────────────────
+  Widget _bottomBar() => Container(
+    padding: EdgeInsets.fromLTRB(20, 12, 20,
+        MediaQuery.of(context).padding.bottom + 12),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      boxShadow: [BoxShadow(color: _c1.withOpacity(.08),
+          blurRadius: 16, offset: const Offset(0, -4))],
     ),
+    child: Column(mainAxisSize: MainAxisSize.min, children: [
+      // selection summary (steps 1-3)
+      if (_step > 0 && _selProd != null) ...[
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          margin: const EdgeInsets.only(bottom: 10),
+          decoration: BoxDecoration(
+            color: _bg, borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFDDE0F0)),
+          ),
+          child: Row(children: [
+            const Icon(Icons.shopping_cart_outlined, color: _c2, size: 16),
+            const SizedBox(width: 8),
+            Expanded(child: Text(
+              [
+                if (_selCat != null) _selCat!['name'] as String,
+                if (_selProd != null) _selProd!['name'] as String,
+                if (_selVar != null) _selVar!['variant_name'] as String,
+                if (_qtyC.text.isNotEmpty) '${_qtyC.text} $_unit',
+                if (_loc != null && _loc!.area.isNotEmpty) _loc!.area,
+              ].join(' › '),
+              maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12, color: _txt,
+                  fontWeight: FontWeight.w600))),
+          ]),
+        ),
+      ],
+
+      // Next / Post button
+      _Tap(
+        onTap: !_canNext
+            ? () { HapticFeedback.lightImpact(); _showNextHint(); }
+            : _step < 3
+                ? () { HapticFeedback.mediumImpact(); _goTo(_step + 1); }
+                : _submitting ? () {} : _submit,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: double.infinity, height: 54,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: _canNext
+                  ? (_step == 3
+                      ? [const Color(0xFF7C1A00), const Color(0xFFD03800),
+                         const Color(0xFFF06000), const Color(0xFFFF9500)]
+                      : [_c0, _c1, _c2, _c3])
+                  : [const Color(0xFFCDD0E3), const Color(0xFFBEC3D4)],
+              begin: Alignment.topLeft, end: Alignment.bottomRight),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: _canNext ? [BoxShadow(
+                color: (_step == 3
+                    ? const Color(0xFFD03800) : _c2).withOpacity(.4),
+                blurRadius: 16, spreadRadius: -2, offset: const Offset(0, 8))]
+                : [],
+          ),
+          child: Center(child: _submitting
+              ? const SizedBox(width: 22, height: 22,
+                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+              : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Icon(
+                    _step == 3
+                        ? Icons.send_rounded
+                        : Icons.arrow_forward_rounded,
+                    color: Colors.white, size: 20),
+                  const SizedBox(width: 10),
+                  Text(
+                    _step == 3 ? S('post_demand_btn') : S('next_btn'),
+                    style: const TextStyle(color: Colors.white,
+                        fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: .2)),
+                ])),
+        ),
+      ),
+    ]),
   );
 
+  void _showNextHint() {
+    final hints = [
+      'Pick a category first',
+      _selProd == null ? 'Pick a product' : 'Pick a variant type',
+      'Enter a quantity',
+      'Set your delivery location',
+    ];
+    _err(hints[_step]);
+  }
+
   // ── helpers ───────────────────────────────────────────────────────────────
+  Widget _label(String t) => Text(t, style: const TextStyle(
+      fontSize: 13.5, fontWeight: FontWeight.w800, color: _sub, letterSpacing: .3));
+
+  Widget _recapChip(String emoji, String text, {required VoidCallback onTap}) =>
+    _Tap(onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(colors: [_c1, _c3],
+              begin: Alignment.topLeft, end: Alignment.bottomRight),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: _c2.withOpacity(.25),
+              blurRadius: 10, offset: const Offset(0, 4))],
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Text(emoji, style: const TextStyle(fontSize: 15)),
+          const SizedBox(width: 8),
+          Flexible(child: Text(text,
+              maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white,
+                  fontSize: 12.5, fontWeight: FontWeight.w700))),
+          const SizedBox(width: 6),
+          const Icon(Icons.edit_rounded, color: Colors.white70, size: 12),
+        ]),
+      ),
+    );
+
+  Widget _blob(double sz, Color c, double op) =>
+      Container(width: sz, height: sz,
+          decoration: BoxDecoration(shape: BoxShape.circle, color: c.withOpacity(op)));
+
   Widget _emptyBox(String msg) => Container(
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
@@ -778,12 +910,5 @@ class _PostDemandScreenState extends State<PostDemandScreen>
       const SizedBox(width: 12),
       Text(msg, style: TextStyle(color: _sub, fontSize: 13.5)),
     ]),
-  );
-
-  Widget _shimmerBox(double h) => Container(
-    height: h,
-    decoration: BoxDecoration(
-      color: Colors.white, borderRadius: BorderRadius.circular(16)),
-    child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
   );
 }

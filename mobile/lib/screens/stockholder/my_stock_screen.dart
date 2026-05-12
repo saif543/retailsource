@@ -1,14 +1,15 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/stock_service.dart';
+import '../../config/language.dart';
 import 'post_stock_screen.dart';
 import 'edit_stock_screen.dart';
 
-const _sg0 = Color(0xFF012B1E);
-const _sg1 = Color(0xFF054F3A);
-const _sg2 = Color(0xFF0A7A56);
-const _sg3 = Color(0xFF0FBB84);
-const _bg  = Color(0xFFF0FBF6);
+const _sp0 = Color(0xFF16002E);
+const _sp1 = Color(0xFF3B0D6B);
+const _sp2 = Color(0xFF7B2FD4);
+const _sp3 = Color(0xFFBB6BF7);
+const _bg  = Color(0xFFF8F0FF);
 const _txt = Color(0xFF212121);
 const _sub = Color(0xFF757575);
 const _red1 = Color(0xFF7B1C1C);
@@ -49,7 +50,10 @@ class _MSS extends State<MyStockScreen> {
   List<Map<String, dynamic>> _all = [];
 
   @override
-  void initState() { super.initState(); _load(); }
+  void initState() { super.initState(); appLang.addListener(_onLangChange); _load(); }
+  void _onLangChange() => setState(() {});
+  @override
+  void dispose() { appLang.removeListener(_onLangChange); super.dispose(); }
 
   Future<void> _load() async {
     setState(() => _loading = true);
@@ -83,9 +87,9 @@ class _MSS extends State<MyStockScreen> {
         ]),
       ),
       Expanded(child: _loading
-          ? const Center(child: CircularProgressIndicator(color: _sg2))
+          ? const Center(child: CircularProgressIndicator(color: _sp2))
           : RefreshIndicator(
-              color: _sg2,
+              color: _sp2,
               onRefresh: _load,
               child: _filtered.isEmpty ? _empty() : ListView.builder(
                 padding: const EdgeInsets.fromLTRB(16, 6, 16, 24),
@@ -99,7 +103,7 @@ class _MSS extends State<MyStockScreen> {
   Widget _buildHeader() => Container(
     decoration: const BoxDecoration(
       gradient: LinearGradient(
-        colors: [_sg0, _sg1, _sg2, _sg3],
+        colors: [_sp0, _sp1, _sp2, _sp3],
         stops: [0.0, 0.35, 0.7, 1.0],
         begin: Alignment.topLeft, end: Alignment.bottomRight,
       ),
@@ -121,8 +125,8 @@ class _MSS extends State<MyStockScreen> {
                 child: const Icon(Icons.arrow_back_ios_new_rounded,
                     color: Colors.white, size: 17))),
             const SizedBox(width: 14),
-            const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('My Stock', style: TextStyle(color: Colors.white,
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(S('my_stock_title'), style: const TextStyle(color: Colors.white,
                   fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -.4)),
               SizedBox(height: 2),
               Text('Manage your listed stock items',
@@ -188,11 +192,11 @@ class _MSS extends State<MyStockScreen> {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          gradient: sel ? const LinearGradient(colors: [_sg1, _sg3]) : null,
+          gradient: sel ? const LinearGradient(colors: [_sp1, _sp3]) : null,
           color: sel ? null : Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: sel ? Colors.transparent : const Color(0xFFD0EDE0)),
-          boxShadow: sel ? [BoxShadow(color: _sg3.withOpacity(.25),
+          border: Border.all(color: sel ? Colors.transparent : const Color(0xFFE8D5FF)),
+          boxShadow: sel ? [BoxShadow(color: _sp3.withOpacity(.25),
               blurRadius: 8, offset: const Offset(0, 3))] : null,
         ),
         child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -207,10 +211,10 @@ class _MSS extends State<MyStockScreen> {
 
   Widget _empty() => Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
     Container(width: 72, height: 72,
-      decoration: BoxDecoration(color: _sg3.withOpacity(.1), shape: BoxShape.circle),
-      child: const Icon(Icons.inventory_2_outlined, color: _sg2, size: 34)),
+      decoration: BoxDecoration(color: _sp3.withOpacity(.1), shape: BoxShape.circle),
+      child: const Icon(Icons.inventory_2_outlined, color: _sp2, size: 34)),
     const SizedBox(height: 16),
-    const Text('No stock yet', style: TextStyle(fontSize: 16,
+    Text(S('no_stock_yet'), style: const TextStyle(fontSize: 16,
         fontWeight: FontWeight.w800, color: _txt)),
     const SizedBox(height: 6),
     const Text('Post your first stock item to get orders',
@@ -226,7 +230,7 @@ class _MSS extends State<MyStockScreen> {
       decoration: BoxDecoration(
         color: Colors.white, borderRadius: BorderRadius.circular(18),
         boxShadow: [
-          BoxShadow(color: _sg1.withOpacity(.06), blurRadius: 14, offset: const Offset(0, 4)),
+          BoxShadow(color: _sp1.withOpacity(.06), blurRadius: 14, offset: const Offset(0, 4)),
           BoxShadow(color: Colors.black.withOpacity(.03), blurRadius: 4, offset: const Offset(0, 2)),
         ],
       ),
@@ -237,7 +241,7 @@ class _MSS extends State<MyStockScreen> {
             Container(width: 44, height: 44,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: available ? const [_sg1, _sg3] : const [Color(0xFF555), Color(0xFF999)],
+                  colors: available ? const [_sp1, _sp3] : const [Color(0xFF555), Color(0xFF999)],
                   begin: Alignment.topLeft, end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(12)),
@@ -255,7 +259,7 @@ class _MSS extends State<MyStockScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
               decoration: BoxDecoration(
                 gradient: LinearGradient(colors: available
-                    ? const [_sg1, _sg3] : const [_red1, _red2]),
+                    ? const [_sp1, _sp3] : const [_red1, _red2]),
                 borderRadius: BorderRadius.circular(8)),
               child: Text(available ? 'AVAILABLE' : 'SOLD OUT',
                   style: const TextStyle(color: Colors.white,
@@ -276,7 +280,7 @@ class _MSS extends State<MyStockScreen> {
               itemBuilder: (_) => [
                 const PopupMenuItem(value: 'edit',
                     child: Row(children: [
-                      Icon(Icons.edit_rounded, size: 16, color: _sg2),
+                      Icon(Icons.edit_rounded, size: 16, color: _sp2),
                       SizedBox(width: 8), Text('Edit'),
                     ])),
                 const PopupMenuItem(value: 'delete',
@@ -299,13 +303,13 @@ class _MSS extends State<MyStockScreen> {
               Text((s['qty'] as String?) ?? '',
                   style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: _txt)),
             ])),
-            Container(width: 1, height: 30, color: const Color(0xFFD0EDE0)),
+            Container(width: 1, height: 30, color: const Color(0xFFE8D5FF)),
             const SizedBox(width: 12),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const Text('Price/Unit', style: TextStyle(color: _sub, fontSize: 11)),
               const SizedBox(height: 2),
               Text((s['price'] as String?) ?? '',
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: _sg2)),
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: _sp2)),
             ])),
           ]),
         ),
@@ -329,10 +333,10 @@ class _MSS extends State<MyStockScreen> {
               child: Container(height: 40,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(colors: available
-                      ? const [_sg1, _sg3] : const [Color(0xFF0E4470), Color(0xFF2196F3)]),
+                      ? const [_sp1, _sp3] : const [Color(0xFF0E4470), Color(0xFF2196F3)]),
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: [BoxShadow(
-                      color: (available ? _sg3 : const Color(0xFF2196F3)).withOpacity(.25),
+                      color: (available ? _sp3 : const Color(0xFF2196F3)).withOpacity(.25),
                       blurRadius: 8, offset: const Offset(0, 3))],
                 ),
                 child: Center(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -374,7 +378,7 @@ class _MSS extends State<MyStockScreen> {
             decoration: BoxDecoration(color: _red2.withOpacity(.1), shape: BoxShape.circle),
             child: const Icon(Icons.delete_outline, color: _red2, size: 28)),
           const SizedBox(height: 16),
-          const Text('Delete this stock?', style: TextStyle(
+          Text(S('delete_stock_title'), style: const TextStyle(
               fontSize: 18, fontWeight: FontWeight.w900, color: _txt)),
           const SizedBox(height: 8),
           const Text('This action cannot be undone.',
@@ -425,9 +429,9 @@ class _PostBtn extends StatelessWidget {
     child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 13),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [_sg1, _sg3]),
+        gradient: const LinearGradient(colors: [_sp1, _sp3]),
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: _sg3.withOpacity(.3), blurRadius: 12, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: _sp3.withOpacity(.3), blurRadius: 12, offset: const Offset(0, 4))],
       ),
       child: const Row(mainAxisSize: MainAxisSize.min, children: [
         Icon(Icons.add_rounded, color: Colors.white, size: 18),

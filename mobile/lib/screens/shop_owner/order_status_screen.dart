@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/order_service.dart';
 import '../../services/receipt_service.dart';
+import '../../config/language.dart';
 import 'rate_supplier_screen.dart';
 
 // ── palette ───────────────────────────────────────────────────────────────────
@@ -60,12 +61,14 @@ class _OSS extends State<OrderStatusScreen> with SingleTickerProviderStateMixin 
   @override
   void initState() {
     super.initState();
+    appLang.addListener(_onLangChange);
     _order = Map<String, dynamic>.from(widget.order);
     _fadeC.forward();
     _load();
   }
 
-  @override void dispose() { _fadeC.dispose(); super.dispose(); }
+  void _onLangChange() => setState(() {});
+  @override void dispose() { appLang.removeListener(_onLangChange); _fadeC.dispose(); super.dispose(); }
 
   Future<void> _load() async {
     final id = _order['order_id'] as int?;
@@ -129,10 +132,10 @@ class _OSS extends State<OrderStatusScreen> with SingleTickerProviderStateMixin 
 
   String _statusLabel(String s) {
     switch (s) {
-      case 'pending':          return 'Pending';
-      case 'accepted':         return 'Accepted';
-      case 'out_for_delivery': return 'On the Way';
-      case 'delivered':        return 'Delivered';
+      case 'pending':          return S('status_pending');
+      case 'accepted':         return S('status_accepted');
+      case 'out_for_delivery': return S('status_on_way');
+      case 'delivered':        return S('status_delivered');
       default:                 return s;
     }
   }
@@ -232,7 +235,7 @@ class _OSS extends State<OrderStatusScreen> with SingleTickerProviderStateMixin 
                 ),
                 const SizedBox(width: 14),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('Order Status', style: TextStyle(color: Colors.white,
+                  Text(S('order_status_title'), style: const TextStyle(color: Colors.white,
                       fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -.4)),
                   Text('Order #$orderId',
                       style: const TextStyle(color: Colors.white54, fontSize: 12.5)),
@@ -388,8 +391,8 @@ class _OSS extends State<OrderStatusScreen> with SingleTickerProviderStateMixin 
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           const Icon(Icons.access_time_rounded, color: Colors.white54, size: 13),
           const SizedBox(width: 5),
-          const Text('Valid for 10 minutes',
-              style: TextStyle(color: Colors.white54, fontSize: 12)),
+          Text(S('otp_valid_for'),
+              style: const TextStyle(color: Colors.white54, fontSize: 12)),
         ]),
         const SizedBox(height: 16),
         _Tap(onTap: _generatingOtp ? () {} : _generateOtp,
@@ -403,8 +406,8 @@ class _OSS extends State<OrderStatusScreen> with SingleTickerProviderStateMixin 
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               const Icon(Icons.refresh_rounded, color: Colors.white70, size: 16),
               const SizedBox(width: 7),
-              const Text('Generate New Code',
-                  style: TextStyle(color: Colors.white70,
+              Text(S('generate_new_code'),
+                  style: const TextStyle(color: Colors.white70,
                       fontSize: 13, fontWeight: FontWeight.w700)),
             ]),
           ),
@@ -427,7 +430,7 @@ class _OSS extends State<OrderStatusScreen> with SingleTickerProviderStateMixin 
                 : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                     const Icon(Icons.pin_outlined, color: _pur1, size: 20),
                     const SizedBox(width: 10),
-                    const Text('Generate OTP', style: TextStyle(color: _pur1,
+                    Text(S('generate_otp'), style: const TextStyle(color: _pur1,
                         fontSize: 15, fontWeight: FontWeight.w900)),
                   ]),
           ),
@@ -502,7 +505,7 @@ class _OSS extends State<OrderStatusScreen> with SingleTickerProviderStateMixin 
         ],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('Delivery Progress', style: TextStyle(fontSize: 15,
+        Text(S('delivery_progress'), style: const TextStyle(fontSize: 15,
             fontWeight: FontWeight.w900, color: _txt, letterSpacing: -.2)),
         const SizedBox(height: 18),
         ...steps.asMap().entries.map((e) =>
@@ -651,10 +654,10 @@ class _OSS extends State<OrderStatusScreen> with SingleTickerProviderStateMixin 
                 gradient: LinearGradient(begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [Colors.white.withOpacity(.2), Colors.transparent]))))))),
-        const Center(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Icons.star_rounded, color: Colors.white, size: 22),
-          SizedBox(width: 10),
-          Text('Rate this Supplier', style: TextStyle(color: Colors.white,
+        Center(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          const Icon(Icons.star_rounded, color: Colors.white, size: 22),
+          const SizedBox(width: 10),
+          Text(S('rate_supplier_btn'), style: const TextStyle(color: Colors.white,
               fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: .2)),
         ])),
       ]),

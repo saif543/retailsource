@@ -19,6 +19,7 @@ import '../shared/notifications_screen.dart';
 import '../shared/profile_screen.dart';
 import '../../services/location_service.dart';
 import '../shared/location_picker_screen.dart';
+import '../../config/language.dart';
 
 // ── palette ───────────────────────────────────────────────────────────────────
 const _c0 = Color(0xFF060D28);   // deepest navy
@@ -88,9 +89,10 @@ class _DS extends State<ShopOwnerDashboard> with TickerProviderStateMixin {
         curve: Interval((i*.1).clamp(0,.7), ((i*.1)+.45).clamp(0,1), curve: Curves.easeOut)));
 
   @override
-  void initState() { super.initState(); _hC.forward(); _load(); }
+  void initState() { super.initState(); appLang.addListener(_onLangChange); _hC.forward(); _load(); }
+  void _onLangChange() => setState(() {});
   @override
-  void dispose() { _hC.dispose(); _lC.dispose(); super.dispose(); }
+  void dispose() { appLang.removeListener(_onLangChange); _hC.dispose(); _lC.dispose(); super.dispose(); }
 
   Future<void> _load() async {
     setState(() => _busy = true);
@@ -238,12 +240,12 @@ class _DS extends State<ShopOwnerDashboard> with TickerProviderStateMixin {
                     const SizedBox(height: 20),
                     _animI(2, _actions()),
                     const SizedBox(height: 28),
-                    _secRow('Active Demands', Icons.shopping_basket_rounded, _blue2,
+                    _secRow(S('active_demands'), Icons.shopping_basket_rounded, _blue2,
                         count: _demands.length, onAll: () => setState(() => _tab = 1)),
                     const SizedBox(height: 14),
                     _animI(3, _demandsLane()),
                     const SizedBox(height: 28),
-                    _secRow('Active Orders', Icons.local_shipping_rounded, _amb1,
+                    _secRow(S('active_orders'), Icons.local_shipping_rounded, _amb1,
                         count: _orders.length, onAll: () => setState(() => _tab = 2)),
                     const SizedBox(height: 14),
                     if (_orders.isEmpty)
@@ -547,11 +549,11 @@ class _DS extends State<ShopOwnerDashboard> with TickerProviderStateMixin {
   // ══════════════════════════════════════════════════════
   Widget _actions() {
     return Row(children: [
-      Expanded(child: _aBtn('Post\nDemand',   Icons.post_add_rounded,       [_ind1, _ind2],  () => _go(const PostDemandScreen()))),
+      Expanded(child: _aBtn(S('post_demand_action'),   Icons.post_add_rounded,       [_ind1, _ind2],  () => _go(const PostDemandScreen()))),
       const SizedBox(width: 12),
-      Expanded(child: _aBtn('Browse\nStocks', Icons.manage_search_rounded,  [_teal1, _teal2],() => _go(const BrowseStocksScreen()))),
+      Expanded(child: _aBtn(S('browse_stocks_action'), Icons.manage_search_rounded,  [_teal1, _teal2],() => _go(const BrowseStocksScreen()))),
       const SizedBox(width: 12),
-      Expanded(child: _aBtn('My\nOrders',     Icons.local_shipping_rounded, [_grn1, _grn2],  () => _go(const MyOrdersScreen()))),
+      Expanded(child: _aBtn(S('my_orders_action'),     Icons.local_shipping_rounded, [_grn1, _grn2],  () => _go(const MyOrdersScreen()))),
     ]);
   }
 
@@ -615,7 +617,7 @@ class _DS extends State<ShopOwnerDashboard> with TickerProviderStateMixin {
             color: c.withOpacity(.1), borderRadius: BorderRadius.circular(20),
             border: Border.all(color: c.withOpacity(.3), width: 1)),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Text('See All', style: TextStyle(color: c, fontWeight: FontWeight.w700, fontSize: 12)),
+            Text(S('see_all'), style: TextStyle(color: c, fontWeight: FontWeight.w700, fontSize: 12)),
             const SizedBox(width: 3),
             Icon(Icons.arrow_forward_ios_rounded, size: 10, color: c),
           ]),
@@ -712,8 +714,8 @@ class _DS extends State<ShopOwnerDashboard> with TickerProviderStateMixin {
             ),
             child: const Icon(Icons.add_rounded, color: Colors.white, size: 22)),
           const SizedBox(height: 10),
-          const Text('Post New\nDemand', textAlign: TextAlign.center,
-              style: TextStyle(color: _blue1, fontWeight: FontWeight.w700, fontSize: 11.5, height: 1.35)),
+          Text(S('post_new_demand'), textAlign: TextAlign.center,
+              style: const TextStyle(color: _blue1, fontWeight: FontWeight.w700, fontSize: 11.5, height: 1.35)),
         ]),
       ),
     );
@@ -931,11 +933,11 @@ class _DS extends State<ShopOwnerDashboard> with TickerProviderStateMixin {
   //  BOTTOM NAV
   // ══════════════════════════════════════════════════════
   Widget _nav() {
-    const items = [
-      (Icons.home_rounded,         Icons.home_outlined,          'Home'),
-      (Icons.list_alt_rounded,     Icons.list_alt_outlined,      'Demands'),
-      (Icons.receipt_long_rounded, Icons.receipt_long_outlined,  'Orders'),
-      (Icons.person_rounded,       Icons.person_outline_rounded, 'Profile'),
+    final items = [
+      (Icons.home_rounded,         Icons.home_outlined,          S('nav_home')),
+      (Icons.list_alt_rounded,     Icons.list_alt_outlined,      S('nav_demands')),
+      (Icons.receipt_long_rounded, Icons.receipt_long_outlined,  S('nav_orders')),
+      (Icons.person_rounded,       Icons.person_outline_rounded, S('nav_profile')),
     ];
     return Container(
       decoration: BoxDecoration(
@@ -998,17 +1000,17 @@ class _DS extends State<ShopOwnerDashboard> with TickerProviderStateMixin {
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-        title: const Text('Log out?', style: TextStyle(fontWeight: FontWeight.w800)),
-        content: const Text('You will need to sign in again.',
-            style: TextStyle(color: AppColors.textGrey)),
+        title: Text(S('log_out_title'), style: const TextStyle(fontWeight: FontWeight.w800)),
+        content: Text(S('log_out_subtitle'),
+            style: const TextStyle(color: AppColors.textGrey)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(S('cancel'))),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.errorRed,
                 foregroundColor: Colors.white, elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-            child: const Text('Log out', style: TextStyle(fontWeight: FontWeight.w700)),
+            child: Text(S('log_out'), style: const TextStyle(fontWeight: FontWeight.w700)),
           ),
         ],
       ),

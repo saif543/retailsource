@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../config/language.dart';
 import '../../services/auth_service.dart';
 import 'shop_owner_register_screen.dart';
 import 'stockholder_register_screen.dart';
@@ -56,18 +57,24 @@ class _LS extends State<LoginScreen> with SingleTickerProviderStateMixin {
       .animate(CurvedAnimation(parent: _slideC, curve: Curves.easeOut));
 
   @override
-  void initState() { super.initState(); _slideC.forward(); }
+  void initState() {
+    super.initState();
+    _slideC.forward();
+    appLang.addListener(_onLangChange);
+  }
+
+  void _onLangChange() => setState(() {});
+
   @override
   void dispose() {
+    appLang.removeListener(_onLangChange);
     _idCtrl.dispose(); _pwCtrl.dispose(); _slideC.dispose(); super.dispose();
   }
 
   Future<void> _login() async {
     final id = _idCtrl.text.trim();
     final pw = _pwCtrl.text;
-    if (id.isEmpty || pw.isEmpty) {
-      _err('Please fill in all fields'); return;
-    }
+    if (id.isEmpty || pw.isEmpty) { _err(S('fill_all_fields')); return; }
     HapticFeedback.mediumImpact();
     setState(() => _loading = true);
     try {
@@ -83,10 +90,10 @@ class _LS extends State<LoginScreen> with SingleTickerProviderStateMixin {
           Navigator.pushNamedAndRemoveUntil(context, '/admin-dashboard', (_) => false);
         }
       } else {
-        _err(r['error']?.toString() ?? 'Login failed');
+        _err(r['error']?.toString() ?? S('login_failed'));
       }
     } catch (_) {
-      if (mounted) _err('Cannot connect to server');
+      if (mounted) _err(S('server_error'));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -118,7 +125,6 @@ class _LS extends State<LoginScreen> with SingleTickerProviderStateMixin {
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 36),
                 child: Column(children: [
-                  // back + title row
                   Row(children: [
                     if (Navigator.canPop(context))
                       _Tap(onTap: () => Navigator.pop(context),
@@ -144,10 +150,10 @@ class _LS extends State<LoginScreen> with SingleTickerProviderStateMixin {
                     child: const Icon(Icons.handshake_rounded,
                         color: Colors.white, size: 34)),
                   const SizedBox(height: 16),
-                  const Text('Welcome Back!', style: TextStyle(color: Colors.white,
+                  Text(S('welcome_back'), style: const TextStyle(color: Colors.white,
                       fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -.5)),
                   const SizedBox(height: 5),
-                  Text('Sign in to your SupplyLink account',
+                  Text(S('sign_in_subtitle'),
                       style: TextStyle(color: Colors.white.withOpacity(.6), fontSize: 14)),
                 ]),
               ),
@@ -168,7 +174,6 @@ class _LS extends State<LoginScreen> with SingleTickerProviderStateMixin {
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(24, 28, 24, 32),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  // card
                   Container(
                     padding: const EdgeInsets.all(22),
                     decoration: BoxDecoration(
@@ -180,12 +185,12 @@ class _LS extends State<LoginScreen> with SingleTickerProviderStateMixin {
                       ],
                     ),
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      _label('Email or Phone'),
-                      _field(controller: _idCtrl, hint: 'Enter your email or 01XXXXXXXXX',
+                      _label(S('email_or_phone')),
+                      _field(controller: _idCtrl, hint: S('email_phone_hint'),
                           icon: Icons.person_outline_rounded,
                           type: TextInputType.emailAddress),
                       const SizedBox(height: 16),
-                      _label('Password'),
+                      _label(S('password')),
                       _fieldObscure(),
                     ]),
                   ),
@@ -217,10 +222,10 @@ class _LS extends State<LoginScreen> with SingleTickerProviderStateMixin {
                             ? const SizedBox(width: 22, height: 22,
                                 child: CircularProgressIndicator(
                                     color: Colors.white, strokeWidth: 2.5))
-                            : const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                                Icon(Icons.login_rounded, color: Colors.white, size: 20),
-                                SizedBox(width: 10),
-                                Text('Sign In', style: TextStyle(color: Colors.white,
+                            : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                                const Icon(Icons.login_rounded, color: Colors.white, size: 20),
+                                const SizedBox(width: 10),
+                                Text(S('sign_in'), style: const TextStyle(color: Colors.white,
                                     fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: .3)),
                               ])),
                       ]),
@@ -229,19 +234,17 @@ class _LS extends State<LoginScreen> with SingleTickerProviderStateMixin {
 
                   const SizedBox(height: 28),
 
-                  // divider
                   Row(children: [
                     Expanded(child: Divider(color: Colors.grey.shade300)),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 14),
-                      child: Text("Don't have an account?",
+                      child: Text(S('no_account'),
                           style: TextStyle(color: _sub.withOpacity(.7), fontSize: 13))),
                     Expanded(child: Divider(color: Colors.grey.shade300)),
                   ]),
 
                   const SizedBox(height: 20),
 
-                  // sign up options
                   Row(children: [
                     Expanded(child: _Tap(
                       onTap: () => Navigator.pushReplacement(context,
@@ -255,12 +258,12 @@ class _LS extends State<LoginScreen> with SingleTickerProviderStateMixin {
                           boxShadow: [BoxShadow(color: _c1.withOpacity(.06),
                               blurRadius: 12, offset: const Offset(0, 4))],
                         ),
-                        child: const Column(children: [
-                          Icon(Icons.storefront_rounded, color: _c2, size: 24),
-                          SizedBox(height: 6),
-                          Text('Shop Owner', style: TextStyle(color: _c1,
+                        child: Column(children: [
+                          const Icon(Icons.storefront_rounded, color: _c2, size: 24),
+                          const SizedBox(height: 6),
+                          Text(S('shop_owner'), style: const TextStyle(color: _c1,
                               fontSize: 12.5, fontWeight: FontWeight.w800)),
-                          Text('Sign Up', style: TextStyle(
+                          Text(S('sign_up'), style: const TextStyle(
                               color: _sub, fontSize: 11.5)),
                         ]),
                       ),
@@ -278,14 +281,15 @@ class _LS extends State<LoginScreen> with SingleTickerProviderStateMixin {
                           boxShadow: [BoxShadow(color: const Color(0xFF054F3A).withOpacity(.06),
                               blurRadius: 12, offset: const Offset(0, 4))],
                         ),
-                        child: const Column(children: [
-                          Icon(Icons.warehouse_rounded,
+                        child: Column(children: [
+                          const Icon(Icons.warehouse_rounded,
                               color: Color(0xFF0A7A56), size: 24),
-                          SizedBox(height: 6),
-                          Text('Stockholder', style: TextStyle(
-                              color: Color(0xFF054F3A),
-                              fontSize: 12.5, fontWeight: FontWeight.w800)),
-                          Text('Sign Up', style: TextStyle(
+                          const SizedBox(height: 6),
+                          Text(S('stockholder_supplier').split(' /').first,
+                              style: const TextStyle(
+                                  color: Color(0xFF054F3A),
+                                  fontSize: 12.5, fontWeight: FontWeight.w800)),
+                          Text(S('sign_up'), style: const TextStyle(
                               color: _sub, fontSize: 11.5)),
                         ]),
                       ),
@@ -336,7 +340,7 @@ class _LS extends State<LoginScreen> with SingleTickerProviderStateMixin {
       obscureText: _obscure,
       style: const TextStyle(fontSize: 14.5, color: _txt, fontWeight: FontWeight.w600),
       decoration: InputDecoration(
-        hintText: 'Enter your password',
+        hintText: S('password_hint'),
         hintStyle: const TextStyle(color: Color(0xFFBBC0D4), fontSize: 14),
         prefixIcon: const Icon(Icons.lock_outline_rounded, color: _sub, size: 20),
         suffixIcon: IconButton(

@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/rating_service.dart';
+import '../../config/language.dart';
 
 // ── palette ───────────────────────────────────────────────────────────────────
 const _c0   = Color(0xFF060D28);
@@ -57,12 +58,14 @@ class _RSS extends State<RateSupplierScreen> with SingleTickerProviderStateMixin
   @override
   void initState() {
     super.initState();
+    appLang.addListener(_onLangChange);
     _fadeC.forward();
     _reviewCtrl.addListener(() => setState(() {}));
   }
 
+  void _onLangChange() => setState(() {});
   @override
-  void dispose() { _reviewCtrl.dispose(); _fadeC.dispose(); super.dispose(); }
+  void dispose() { appLang.removeListener(_onLangChange); _reviewCtrl.dispose(); _fadeC.dispose(); super.dispose(); }
 
   bool get _canSubmit => _rating > 0 && _reviewCtrl.text.trim().length >= 10;
 
@@ -242,12 +245,12 @@ class _RSS extends State<RateSupplierScreen> with SingleTickerProviderStateMixin
               ),
             ),
             const SizedBox(width: 14),
-            const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Rate Supplier', style: TextStyle(color: Colors.white,
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(S('rate_supplier_title'), style: const TextStyle(color: Colors.white,
                   fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -.4)),
-              SizedBox(height: 2),
-              Text('Share your delivery experience',
-                  style: TextStyle(color: Colors.white54, fontSize: 12.5)),
+              const SizedBox(height: 2),
+              Text(S('rate_supplier_subtitle'),
+                  style: const TextStyle(color: Colors.white54, fontSize: 12.5)),
             ])),
             // star badge
             Container(
@@ -393,7 +396,7 @@ class _RSS extends State<RateSupplierScreen> with SingleTickerProviderStateMixin
           ),
           child: const Icon(Icons.rate_review_rounded, color: Colors.white, size: 15)),
         const SizedBox(width: 10),
-        const Text('Write your review', style: TextStyle(fontSize: 15,
+        Text(S('write_review'), style: const TextStyle(fontSize: 15,
             fontWeight: FontWeight.w800, color: _txt, letterSpacing: -.2)),
       ]),
       const SizedBox(height: 14),
@@ -464,7 +467,7 @@ class _RSS extends State<RateSupplierScreen> with SingleTickerProviderStateMixin
                 Icon(Icons.send_rounded,
                     color: _canSubmit ? Colors.white : _sub, size: 20),
                 const SizedBox(width: 10),
-                Text('Submit Review', style: TextStyle(
+                Text(S('submit_review'), style: TextStyle(
                     color: _canSubmit ? Colors.white : _sub,
                     fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: .2)),
               ])),

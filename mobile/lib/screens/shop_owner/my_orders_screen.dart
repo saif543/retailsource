@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/order_service.dart';
+import '../../config/language.dart';
 import 'order_status_screen.dart';
 import 'rate_supplier_screen.dart';
 
@@ -54,12 +55,14 @@ class _MOS extends State<MyOrdersScreen> with SingleTickerProviderStateMixin {
       vsync: this, duration: const Duration(milliseconds: 380));
 
   static const _keys = ['', 'pending', 'accepted', 'out_for_delivery', 'delivered'];
-  static const _labels = ['All', 'Pending', 'Accepted', 'On Way', 'Delivered'];
+
+  List<String> get _labels => [S('filter_all'), S('status_pending'), S('status_accepted'), S('status_on_way'), S('status_delivered')];
 
   @override
-  void initState() { super.initState(); _load(); }
+  void initState() { super.initState(); appLang.addListener(_onLangChange); _load(); }
+  void _onLangChange() => setState(() {});
   @override
-  void dispose() { _fadeC.dispose(); super.dispose(); }
+  void dispose() { appLang.removeListener(_onLangChange); _fadeC.dispose(); super.dispose(); }
 
   Future<void> _load() async {
     setState(() => _loading = true);
@@ -98,10 +101,10 @@ class _MOS extends State<MyOrdersScreen> with SingleTickerProviderStateMixin {
   }
   String _statusLabel(String s) {
     switch (s) {
-      case 'pending':          return 'Pending';
-      case 'accepted':         return 'Accepted';
-      case 'out_for_delivery': return 'On the Way';
-      case 'delivered':        return 'Delivered';
+      case 'pending':          return S('status_pending');
+      case 'accepted':         return S('status_accepted');
+      case 'out_for_delivery': return S('status_on_way');
+      case 'delivered':        return S('status_delivered');
       default:                 return s;
     }
   }
@@ -150,12 +153,24 @@ class _MOS extends State<MyOrdersScreen> with SingleTickerProviderStateMixin {
           padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
-              const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('My Orders', style: TextStyle(color: Colors.white,
+              if (Navigator.canPop(context))
+                _Tap(onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: 40, height: 40, margin: const EdgeInsets.only(right: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(.14),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withOpacity(.25)),
+                    ),
+                    child: const Icon(Icons.arrow_back_ios_new_rounded,
+                        color: Colors.white, size: 16),
+                  )),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(S('my_orders_title'), style: const TextStyle(color: Colors.white,
                     fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -.4)),
-                SizedBox(height: 2),
-                Text('Track all your placed orders',
-                    style: TextStyle(color: Colors.white54, fontSize: 12.5)),
+                const SizedBox(height: 2),
+                Text(S('my_orders_subtitle'),
+                    style: const TextStyle(color: Colors.white54, fontSize: 12.5)),
               ])),
               ClipRRect(borderRadius: BorderRadius.circular(12),
                 child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
@@ -314,7 +329,7 @@ class _MOS extends State<MyOrdersScreen> with SingleTickerProviderStateMixin {
                     child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                       Icon(Icons.verified_rounded, color: _grn2, size: 18),
                       const SizedBox(width: 8),
-                      Text('Rating Completed',
+                      Text(S('rating_completed'),
                           style: TextStyle(color: _grn1,
                               fontSize: 14, fontWeight: FontWeight.w800)),
                     ]),
@@ -338,11 +353,11 @@ class _MOS extends State<MyOrdersScreen> with SingleTickerProviderStateMixin {
                             bottomLeft: Radius.circular(22),
                             bottomRight: Radius.circular(22)),
                       ),
-                      child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        Icon(Icons.star_rounded, color: Colors.white, size: 18),
-                        SizedBox(width: 8),
-                        Text('Rate this Supplier',
-                            style: TextStyle(color: Colors.white,
+                      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        const Icon(Icons.star_rounded, color: Colors.white, size: 18),
+                        const SizedBox(width: 8),
+                        Text(S('rate_supplier_btn'),
+                            style: const TextStyle(color: Colors.white,
                                 fontSize: 14, fontWeight: FontWeight.w800)),
                       ]),
                     ),
@@ -372,11 +387,11 @@ class _MOS extends State<MyOrdersScreen> with SingleTickerProviderStateMixin {
       ),
       child: const Icon(Icons.receipt_long_rounded, size: 44, color: Colors.white)),
     const SizedBox(height: 20),
-    const Text('No orders yet', style: TextStyle(fontSize: 18,
+    Text(S('no_orders_yet'), style: const TextStyle(fontSize: 18,
         fontWeight: FontWeight.w800, color: _txt)),
     const SizedBox(height: 8),
-    const Text('Orders you place will appear here.',
-        style: TextStyle(color: _sub, fontSize: 14)),
+    Text(S('no_orders_subtitle'),
+        style: const TextStyle(color: _sub, fontSize: 14)),
   ]));
 
   Widget _blob(double sz, Color c, double op) =>

@@ -53,6 +53,8 @@ class StockService {
         'price': '৳${price?.toStringAsFixed(0)}/$unit',
         'price_per_unit': price,
         'loc': s['warehouse_area'] ?? '',
+        'lat': (s['lat'] as num?)?.toDouble(),
+        'lng': (s['lng'] as num?)?.toDouble(),
         'status': s['status'] == 'available' ? 'Available' : 'Sold Out',
         'views': 0,
         'interested': 0,
@@ -102,6 +104,8 @@ class StockService {
     double? quantity,
     double? price,
     String? warehouseArea,
+    double? lat,
+    double? lng,
     String? notes,
     String? status,
   }) async {
@@ -109,6 +113,8 @@ class StockService {
     if (quantity != null) body['quantity_available'] = quantity;
     if (price != null) body['price_per_unit'] = price;
     if (warehouseArea != null) body['warehouse_area'] = warehouseArea;
+    if (lat != null) body['lat'] = lat;
+    if (lng != null) body['lng'] = lng;
     if (notes != null) body['additional_notes'] = notes;
     if (status != null) body['status'] = status;
 

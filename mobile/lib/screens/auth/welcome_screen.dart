@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../config/language.dart';
 import 'login_screen.dart';
 import 'shop_owner_register_screen.dart';
 import 'stockholder_register_screen.dart';
@@ -49,9 +50,17 @@ class _WS extends State<WelcomeScreen> with SingleTickerProviderStateMixin {
   void initState() {
     super.initState();
     _entryC.forward();
+    appLang.addListener(_onLangChange);
   }
 
-  @override void dispose() { _entryC.dispose(); super.dispose(); }
+  void _onLangChange() => setState(() {});
+
+  @override
+  void dispose() {
+    appLang.removeListener(_onLangChange);
+    _entryC.dispose();
+    super.dispose();
+  }
 
   void _go(Widget screen) => Navigator.push(context,
       PageRouteBuilder(
@@ -99,7 +108,6 @@ class _WS extends State<WelcomeScreen> with SingleTickerProviderStateMixin {
                         .animate(CurvedAnimation(parent: _entryC,
                             curve: const Interval(.0, .6, curve: Curves.easeOut))),
                     child: Column(children: [
-                      // icon ring
                       Container(width: 96, height: 96,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
@@ -116,16 +124,15 @@ class _WS extends State<WelcomeScreen> with SingleTickerProviderStateMixin {
                         child: const Icon(Icons.handshake_rounded,
                             color: Colors.white, size: 46)),
                       const SizedBox(height: 22),
-                      // name
-                      const Text('SupplyLink',
-                          style: TextStyle(color: Colors.white,
+                      Text(S('app_name'),
+                          style: const TextStyle(color: Colors.white,
                               fontSize: 34, fontWeight: FontWeight.w900,
                               letterSpacing: -1.2)),
                       const SizedBox(height: 8),
-                      Text('Connect · Source · Grow',
+                      Text(S('tagline'),
                           style: TextStyle(
                               color: Colors.white.withOpacity(.55),
-                              fontSize: 14, letterSpacing: 2.5,
+                              fontSize: 14, letterSpacing: 2.0,
                               fontWeight: FontWeight.w500)),
                     ]),
                   ),
@@ -139,18 +146,18 @@ class _WS extends State<WelcomeScreen> with SingleTickerProviderStateMixin {
                         .animate(CurvedAnimation(parent: _entryC,
                             curve: const Interval(.25, .8, curve: Curves.easeOut))),
                     child: Column(children: [
-                      const Text('Direct sourcing for Bangladeshi\nshop owners & suppliers',
+                      Text(S('welcome_desc'),
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.white70,
+                          style: const TextStyle(color: Colors.white70,
                               fontSize: 15.5, height: 1.55)),
                       const SizedBox(height: 20),
                       Wrap(
                         alignment: WrapAlignment.center,
                         spacing: 8, runSpacing: 8,
                         children: [
-                          _pill(Icons.block_rounded, 'No Middlemen'),
-                          _pill(Icons.location_on_rounded, 'Near You'),
-                          _pill(Icons.star_rounded, 'Rated'),
+                          _pill(Icons.block_rounded,        S('no_middlemen')),
+                          _pill(Icons.location_on_rounded,  S('near_you')),
+                          _pill(Icons.star_rounded,         S('rated')),
                         ],
                       ),
                     ]),
@@ -167,16 +174,16 @@ class _WS extends State<WelcomeScreen> with SingleTickerProviderStateMixin {
                     child: Column(children: [
                       _roleCard(
                         icon: Icons.storefront_rounded,
-                        title: 'Shop Owner',
-                        sub: 'Post demands, find suppliers, track orders',
+                        title: S('shop_owner'),
+                        sub: S('shop_owner_sub'),
                         grad: const [_c1, _c2, _c3],
                         onTap: () => _go(const ShopOwnerRegisterScreen()),
                       ),
                       const SizedBox(height: 14),
                       _roleCard(
                         icon: Icons.warehouse_rounded,
-                        title: 'Stockholder / Supplier',
-                        sub: 'List your stock, accept orders, deliver',
+                        title: S('stockholder_supplier'),
+                        sub: S('stockholder_sub'),
                         grad: const [_grn1, Color(0xFF0A7A56), _grn2],
                         onTap: () => _go(const StockholderRegisterScreen()),
                       ),
@@ -187,7 +194,7 @@ class _WS extends State<WelcomeScreen> with SingleTickerProviderStateMixin {
 
                   // ── sign in link ──────────────────────────────────────────
                   Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Text('Already have an account? ',
+                    Text(S('already_account'),
                         style: TextStyle(color: Colors.white.withOpacity(.6),
                             fontSize: 14)),
                     _Tap(onTap: () => _go(const LoginScreen()),
@@ -199,8 +206,8 @@ class _WS extends State<WelcomeScreen> with SingleTickerProviderStateMixin {
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(color: Colors.white.withOpacity(.25)),
                         ),
-                        child: const Text('Sign In',
-                            style: TextStyle(color: Colors.white,
+                        child: Text(S('sign_in'),
+                            style: const TextStyle(color: Colors.white,
                                 fontSize: 13.5, fontWeight: FontWeight.w800)),
                       )),
                   ]),
@@ -208,6 +215,15 @@ class _WS extends State<WelcomeScreen> with SingleTickerProviderStateMixin {
                   const SizedBox(height: 28),
                 ]),
               ),
+            ),
+          ),
+
+          // ── Language Toggle (top-right floating) ──────────────────────────
+          Positioned(
+            top: 0,
+            right: 16,
+            child: SafeArea(
+              child: _LangToggle(onChanged: () => setState(() {})),
             ),
           ),
         ]),
@@ -284,4 +300,55 @@ class _WS extends State<WelcomeScreen> with SingleTickerProviderStateMixin {
       Container(width: sz, height: sz,
           decoration: BoxDecoration(
               shape: BoxShape.circle, color: c.withOpacity(op)));
+}
+
+// ── Language Toggle Widget ────────────────────────────────────────────────────
+class _LangToggle extends StatelessWidget {
+  final VoidCallback onChanged;
+  const _LangToggle({required this.onChanged});
+
+  void _select(String lang) {
+    appLang.value = lang;
+    onChanged();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cur = appLang.value;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(.25)),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        _btn('EN', 'en', cur),
+        const SizedBox(width: 2),
+        _btn('বাং', 'bn', cur),
+      ]),
+    );
+  }
+
+  Widget _btn(String label, String lang, String cur) {
+    final active = cur == lang;
+    return GestureDetector(
+      onTap: () => _select(lang),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        decoration: BoxDecoration(
+          color: active ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Text(label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            color: active ? const Color(0xFF1F4BD5) : Colors.white70,
+          ),
+        ),
+      ),
+    );
+  }
 }

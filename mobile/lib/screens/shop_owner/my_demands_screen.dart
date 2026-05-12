@@ -2,8 +2,10 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/demand_service.dart';
+import '../../config/language.dart';
 import 'post_demand_screen.dart';
 import 'demand_detail_screen.dart';
+import 'matching_suppliers_screen.dart';
 
 const _c0  = Color(0xFF060D28);
 const _c1  = Color(0xFF0E2260);
@@ -52,9 +54,10 @@ class _MDS extends State<MyDemandsScreen> with SingleTickerProviderStateMixin {
       vsync: this, duration: const Duration(milliseconds: 380));
 
   @override
-  void initState() { super.initState(); _load(); }
+  void initState() { super.initState(); appLang.addListener(_onLangChange); _load(); }
+  void _onLangChange() => setState(() {});
   @override
-  void dispose() { _fadeC.dispose(); super.dispose(); }
+  void dispose() { appLang.removeListener(_onLangChange); _fadeC.dispose(); super.dispose(); }
 
   Future<void> _load() async {
     setState(() => _loading = true);
@@ -134,7 +137,7 @@ class _MDS extends State<MyDemandsScreen> with SingleTickerProviderStateMixin {
         foregroundColor: Colors.white,
         elevation: 6,
         icon: const Icon(Icons.add_rounded),
-        label: const Text('New Demand', style: TextStyle(fontWeight: FontWeight.w800)),
+        label: Text(S('new_demand_fab'), style: const TextStyle(fontWeight: FontWeight.w800)),
       ),
     ),
   );
@@ -158,12 +161,12 @@ class _MDS extends State<MyDemandsScreen> with SingleTickerProviderStateMixin {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             // top row
             Row(children: [
-              const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('My Demands', style: TextStyle(color: Colors.white,
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(S('my_demands_title'), style: const TextStyle(color: Colors.white,
                     fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -.4)),
-                SizedBox(height: 2),
-                Text('Track all your posted demands',
-                    style: TextStyle(color: Colors.white54, fontSize: 12.5)),
+                const SizedBox(height: 2),
+                Text(S('my_demands_subtitle'),
+                    style: const TextStyle(color: Colors.white54, fontSize: 12.5)),
               ])),
               // refresh glass btn
               ClipRRect(borderRadius: BorderRadius.circular(12),
@@ -224,113 +227,169 @@ class _MDS extends State<MyDemandsScreen> with SingleTickerProviderStateMixin {
 
   // ── demand card ───────────────────────────────────────────────────────────
   Widget _card(Map<String, dynamic> d) {
-    final status = (d['status'] ?? 'open') as String;
-    final grad   = _statusGrad(status);
+    final status   = (d['status'] ?? 'open') as String;
+    final grad     = _statusGrad(status);
+    final fulfilled = status == 'fulfilled';
 
-    return _Tap(
-      onTap: () async {
-        final r = await Navigator.push(context, _route(
-            DemandDetailScreen(demandId: d['demand_id'] as int)));
-        if (r == 'cancelled' || r == 'ordered') _load();
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(22),
-          boxShadow: [
-            BoxShadow(color: _c1.withOpacity(.08), blurRadius: 20, offset: const Offset(0, 6)),
-            BoxShadow(color: Colors.black.withOpacity(.03), blurRadius: 4, offset: const Offset(0, 2)),
-          ],
-        ),
-        child: Column(children: [
-          // top section
-          Padding(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(color: _c1.withOpacity(.08), blurRadius: 20, offset: const Offset(0, 6)),
+          BoxShadow(color: Colors.black.withOpacity(.03), blurRadius: 4, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Column(children: [
+        // ── tappable body → DemandDetailScreen ──────────────────────────────
+        _Tap(
+          onTap: () async {
+            final r = await Navigator.push(context, _route(
+                DemandDetailScreen(demandId: d['demand_id'] as int)));
+            if (r == 'cancelled' || r == 'ordered') _load();
+          },
+          child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-            child: Row(children: [
-              // icon
-              Container(width: 50, height: 50,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: grad,
-                      begin: Alignment.topLeft, end: Alignment.bottomRight),
-                  borderRadius: BorderRadius.circular(15),
-                  boxShadow: [BoxShadow(color: grad.last.withOpacity(.38),
-                      blurRadius: 12, offset: const Offset(0, 4))],
-                ),
-                child: Icon(_statusIcon(status), color: Colors.white, size: 24)),
-              const SizedBox(width: 14),
-              // product info
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('${d['product_name']}',
-                    style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800,
-                        color: _txt, letterSpacing: -.2),
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 4),
-                Row(children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: _c2.withOpacity(.09), borderRadius: BorderRadius.circular(6)),
-                    child: Text('${d['variant_name']}',
-                        style: const TextStyle(color: _c2, fontSize: 11.5,
-                            fontWeight: FontWeight.w700))),
-                  const SizedBox(width: 6),
-                  Text('${d['category_name']}',
-                      style: const TextStyle(color: _sub, fontSize: 12)),
-                ]),
-              ])),
-              // status badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: grad),
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [BoxShadow(color: grad.last.withOpacity(.35),
-                      blurRadius: 8, offset: const Offset(0, 3))],
-                ),
-                child: Text(_statusLabel(status),
-                    style: const TextStyle(color: Colors.white,
-                        fontSize: 11, fontWeight: FontWeight.w800))),
-            ]),
-          ),
-          // meta row
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-            child: Row(children: [
-              _metaPill(Icons.scale_rounded, '${d['quantity']} ${d['unit']}', _c2),
-              const SizedBox(width: 8),
-              _metaPill(Icons.access_time_rounded,
-                  _timeAgo(d['created_at'] as String?), _sub),
-              if ((d['location_area'] ?? '').toString().isNotEmpty) ...[
+            child: Column(children: [
+              Row(children: [
+                Container(width: 50, height: 50,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(colors: grad,
+                        begin: Alignment.topLeft, end: Alignment.bottomRight),
+                    borderRadius: BorderRadius.circular(15),
+                    boxShadow: [BoxShadow(color: grad.last.withOpacity(.38),
+                        blurRadius: 12, offset: const Offset(0, 4))],
+                  ),
+                  child: Icon(_statusIcon(status), color: Colors.white, size: 24)),
+                const SizedBox(width: 14),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('${d['product_name']}',
+                      style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800,
+                          color: _txt, letterSpacing: -.2),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 4),
+                  Row(children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: _c2.withOpacity(.09), borderRadius: BorderRadius.circular(6)),
+                      child: Text('${d['variant_name']}',
+                          style: const TextStyle(color: _c2, fontSize: 11.5,
+                              fontWeight: FontWeight.w700))),
+                    const SizedBox(width: 6),
+                    Text('${d['category_name']}',
+                        style: const TextStyle(color: _sub, fontSize: 12)),
+                  ]),
+                ])),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(colors: grad),
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [BoxShadow(color: grad.last.withOpacity(.35),
+                        blurRadius: 8, offset: const Offset(0, 3))],
+                  ),
+                  child: Text(_statusLabel(status),
+                      style: const TextStyle(color: Colors.white,
+                          fontSize: 11, fontWeight: FontWeight.w800))),
+              ]),
+              const SizedBox(height: 10),
+              Row(children: [
+                _metaPill(Icons.scale_rounded, '${d['quantity']} ${d['unit']}', _c2),
                 const SizedBox(width: 8),
-                Expanded(child: _metaPill(Icons.place_rounded,
-                    d['location_area'] as String, _sub, expand: true)),
-              ],
+                _metaPill(Icons.access_time_rounded,
+                    _timeAgo(d['created_at'] as String?), _sub),
+                if ((d['location_area'] ?? '').toString().isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  Expanded(child: _metaPill(Icons.place_rounded,
+                      d['location_area'] as String, _sub, expand: true)),
+                ],
+              ]),
             ]),
           ),
-          // action strip
+        ),
+
+        // ── action button ────────────────────────────────────────────────────
+        if (fulfilled)
+          // fulfilled: show completed banner — no navigation needed
           Container(
+            margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                  colors: [grad[0].withOpacity(.06), grad[1].withOpacity(.03)]),
-              borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(22),
-                  bottomRight: Radius.circular(22)),
-              border: Border(top: BorderSide(color: grad[1].withOpacity(.12))),
+                  colors: [_grn1.withOpacity(.08), _grn2.withOpacity(.06)]),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _grn2.withOpacity(.3)),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
             child: Row(children: [
-              Icon(_statusIcon(status), color: grad.last, size: 15),
-              const SizedBox(width: 7),
-              Text(_actionLabel(status),
-                  style: TextStyle(color: grad.last,
-                      fontWeight: FontWeight.w800, fontSize: 13)),
-              const Spacer(),
-              Icon(Icons.arrow_forward_ios_rounded, size: 12, color: grad.last),
+              Icon(Icons.check_circle_rounded, color: _grn2, size: 18),
+              const SizedBox(width: 8),
+              const Expanded(child: Text('Demand fulfilled — delivery completed',
+                  style: TextStyle(color: Color(0xFF054F3A),
+                      fontSize: 12.5, fontWeight: FontWeight.w700))),
+              _Tap(
+                onTap: () async {
+                  final r = await Navigator.push(context, _route(
+                      DemandDetailScreen(demandId: d['demand_id'] as int)));
+                  if (r == 'cancelled' || r == 'ordered') _load();
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: [_grn1, _grn2]),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Text('Details', style: TextStyle(
+                      color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w800)),
+                ),
+              ),
             ]),
+          )
+        else
+          // open / matched: prominent "Find Suppliers" / "View Matches" button
+          _Tap(
+            onTap: () async {
+              final lat = (d['lat'] as num?)?.toDouble();
+              final lng = (d['lng'] as num?)?.toDouble();
+              final placed = await Navigator.push<bool>(context,
+                MaterialPageRoute(builder: (_) => MatchingSuppliersScreen(
+                  demandId: d['demand_id'] as int,
+                  productLabel: '${d['product_name']} - ${d['variant_name']}',
+                  demandQuantity: (d['quantity'] as num).toDouble(),
+                  demandUnit: d['unit'] as String,
+                  deliveryArea: d['location_area'] as String?,
+                  deliveryLat: lat,
+                  deliveryLng: lng,
+                )),
+              );
+              if (placed == true) { _load(); }
+            },
+            child: Container(
+              margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                    colors: status == 'matched'
+                        ? [_amb1, _amb2] : [_c1, _c2, _c3],
+                    begin: Alignment.topLeft, end: Alignment.bottomRight),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [BoxShadow(
+                    color: (status == 'matched' ? _amb2 : _c2).withOpacity(.35),
+                    blurRadius: 10, offset: const Offset(0, 4))],
+              ),
+              child: Row(children: [
+                Icon(_statusIcon(status), color: Colors.white, size: 17),
+                const SizedBox(width: 10),
+                Expanded(child: Text(_actionLabel(status),
+                    style: const TextStyle(color: Colors.white,
+                        fontSize: 14, fontWeight: FontWeight.w800))),
+                const Icon(Icons.arrow_forward_rounded,
+                    color: Colors.white, size: 16),
+              ]),
+            ),
           ),
-        ]),
-      ),
+      ]),
     );
   }
 
@@ -361,12 +420,12 @@ class _MDS extends State<MyDemandsScreen> with SingleTickerProviderStateMixin {
       ),
       child: const Icon(Icons.inbox_rounded, size: 44, color: Colors.white)),
     const SizedBox(height: 20),
-    const Text('No demands yet',
-        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: _txt)),
+    Text(S('no_demands_yet'),
+        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: _txt)),
     const SizedBox(height: 8),
     Text(_filter == 'all'
-        ? 'Tap "New Demand" to find suppliers'
-        : 'No ${_filter} demands',
+        ? S('no_demands_subtitle')
+        : S('no_demands_filter'),
         style: const TextStyle(color: _sub, fontSize: 14)),
   ]));
 

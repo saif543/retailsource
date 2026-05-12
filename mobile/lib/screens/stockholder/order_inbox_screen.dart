@@ -1,13 +1,14 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/order_service.dart';
+import '../../config/language.dart';
 import 'order_detail_screen.dart';
 
-const _sg0 = Color(0xFF012B1E);
-const _sg1 = Color(0xFF054F3A);
-const _sg2 = Color(0xFF0A7A56);
-const _sg3 = Color(0xFF0FBB84);
-const _bg  = Color(0xFFF0FBF6);
+const _sp0 = Color(0xFF16002E);
+const _sp1 = Color(0xFF3B0D6B);
+const _sp2 = Color(0xFF7B2FD4);
+const _sp3 = Color(0xFFBB6BF7);
+const _bg  = Color(0xFFF8F0FF);
 const _txt = Color(0xFF212121);
 const _sub = Color(0xFF757575);
 
@@ -49,7 +50,10 @@ class _OIS extends State<OrderInboxScreen> {
   final _filterLabels = ['All', 'Pending', 'Accepted', 'On Way', 'Delivered'];
 
   @override
-  void initState() { super.initState(); _load(); }
+  void initState() { super.initState(); appLang.addListener(_onLangChange); _load(); }
+  void _onLangChange() => setState(() {});
+  @override
+  void dispose() { appLang.removeListener(_onLangChange); super.dispose(); }
 
   Future<void> _load() async {
     setState(() => _loading = true);
@@ -73,9 +77,9 @@ class _OIS extends State<OrderInboxScreen> {
     body: Column(children: [
       _buildHeader(),
       Expanded(child: _loading
-          ? const Center(child: CircularProgressIndicator(color: _sg2))
+          ? const Center(child: CircularProgressIndicator(color: _sp2))
           : RefreshIndicator(
-              color: _sg2,
+              color: _sp2,
               onRefresh: _load,
               child: _filtered.isEmpty
                   ? _empty()
@@ -90,7 +94,7 @@ class _OIS extends State<OrderInboxScreen> {
   Widget _buildHeader() => Container(
     decoration: const BoxDecoration(
       gradient: LinearGradient(
-        colors: [_sg0, _sg1, _sg2, _sg3],
+        colors: [_sp0, _sp1, _sp2, _sp3],
         stops: [0.0, 0.35, 0.7, 1.0],
         begin: Alignment.topLeft, end: Alignment.bottomRight,
       ),
@@ -112,11 +116,11 @@ class _OIS extends State<OrderInboxScreen> {
                 child: const Icon(Icons.arrow_back_ios_new_rounded,
                     color: Colors.white, size: 17))),
             const SizedBox(width: 14),
-            const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Order Inbox', style: TextStyle(color: Colors.white,
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(S('order_inbox_title'), style: const TextStyle(color: Colors.white,
                   fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -.4)),
-              SizedBox(height: 2),
-              Text('Manage incoming orders', style: TextStyle(color: Colors.white54, fontSize: 12.5)),
+              const SizedBox(height: 2),
+              Text(S('order_inbox_subtitle'), style: const TextStyle(color: Colors.white54, fontSize: 12.5)),
             ])),
             _Tap(onTap: _load,
               child: Container(width: 40, height: 40,
@@ -144,7 +148,7 @@ class _OIS extends State<OrderInboxScreen> {
                     margin: const EdgeInsets.only(right: 8),
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                     decoration: BoxDecoration(
-                      gradient: sel ? const LinearGradient(colors: [_sg1, _sg3]) : null,
+                      gradient: sel ? const LinearGradient(colors: [_sp1, _sp3]) : null,
                       color: sel ? null : Colors.white.withOpacity(.15),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: sel ? Colors.transparent : Colors.white.withOpacity(.3)),
@@ -177,10 +181,10 @@ class _OIS extends State<OrderInboxScreen> {
 
   Widget _empty() => Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
     Container(width: 72, height: 72,
-      decoration: BoxDecoration(color: _sg3.withOpacity(.1), shape: BoxShape.circle),
-      child: const Icon(Icons.inbox_rounded, color: _sg2, size: 34)),
+      decoration: BoxDecoration(color: _sp3.withOpacity(.1), shape: BoxShape.circle),
+      child: const Icon(Icons.inbox_rounded, color: _sp2, size: 34)),
     const SizedBox(height: 16),
-    const Text('No orders', style: TextStyle(fontSize: 16,
+    Text(S('no_orders'), style: const TextStyle(fontSize: 16,
         fontWeight: FontWeight.w800, color: _txt)),
     const SizedBox(height: 6),
     Text(_filter == 0
@@ -199,7 +203,7 @@ class _OIS extends State<OrderInboxScreen> {
         label = 'PENDING';
         break;
       case 'accepted':
-        grad = const [_sg1, _sg3];
+        grad = const [_sp1, _sp3];
         label = 'ACCEPTED';
         break;
       case 'out_for_delivery':
@@ -224,7 +228,7 @@ class _OIS extends State<OrderInboxScreen> {
         decoration: BoxDecoration(
           color: Colors.white, borderRadius: BorderRadius.circular(18),
           boxShadow: [
-            BoxShadow(color: _sg1.withOpacity(.07), blurRadius: 14, offset: const Offset(0, 4)),
+            BoxShadow(color: _sp1.withOpacity(.07), blurRadius: 14, offset: const Offset(0, 4)),
             BoxShadow(color: Colors.black.withOpacity(.03), blurRadius: 4, offset: const Offset(0, 2)),
           ],
         ),
@@ -265,7 +269,7 @@ class _OIS extends State<OrderInboxScreen> {
               Expanded(child: Text('${o['qty']}',
                   style: const TextStyle(fontWeight: FontWeight.w700, color: _sub, fontSize: 13))),
               Text('৳${(o['price'] as num?)?.toStringAsFixed(0) ?? '0'}',
-                  style: const TextStyle(color: _sg2,
+                  style: const TextStyle(color: _sp2,
                       fontWeight: FontWeight.w900, fontSize: 16)),
               const SizedBox(width: 8),
               const Icon(Icons.chevron_right, color: _sub, size: 18),

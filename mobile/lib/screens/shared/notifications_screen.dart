@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import '../../config/app_colors.dart';
 import '../../services/notification_service.dart';
+import '../../config/language.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -32,7 +33,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   void initState() {
     super.initState();
+    appLang.addListener(_onLangChange);
     _load();
+  }
+
+  void _onLangChange() => setState(() {});
+
+  @override
+  void dispose() {
+    appLang.removeListener(_onLangChange);
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -124,16 +134,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       const Icon(Icons.notifications,
                           color: Colors.white, size: 22),
                       const SizedBox(width: 6),
-                      const Text('Notifications',
-                          style: TextStyle(
+                      Text(S('notifications_title'),
+                          style: const TextStyle(
                               color: Colors.white,
                               fontSize: 18,
                               fontWeight: FontWeight.w900)),
                       const Spacer(),
                       TextButton(
                         onPressed: _markAllRead,
-                        child: const Text('Mark all read',
-                            style: TextStyle(color: Colors.white)),
+                        child: Text(S('mark_all_read'),
+                            style: const TextStyle(color: Colors.white)),
                       ),
                     ],
                   ),
@@ -166,17 +176,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             child: Column(mainAxisSize: MainAxisSize.min, children: [
                               const Icon(Icons.wifi_off_rounded, color: AppColors.textGrey, size: 40),
                               const SizedBox(height: 10),
-                              Text('Could not load notifications',
+                              Text(S('could_not_load_notifications'),
                                   style: const TextStyle(color: AppColors.textGrey, fontWeight: FontWeight.w700)),
                               const SizedBox(height: 4),
                               Text(_error!, style: const TextStyle(color: AppColors.textGrey, fontSize: 11)),
                               const SizedBox(height: 16),
-                              TextButton(onPressed: _load, child: const Text('Retry')),
+                              TextButton(onPressed: _load, child: Text(S('retry_btn'))),
                             ]))
                         : _filtered.isEmpty
-                        ? const Center(
-                            child: Text('No notifications',
-                                style: TextStyle(color: AppColors.textGrey)))
+                        ? Center(
+                            child: Text(S('no_notifications'),
+                                style: const TextStyle(color: AppColors.textGrey)))
                         : ListView.builder(
                             padding: const EdgeInsets.fromLTRB(14, 6, 14, 24),
                             itemCount: _filtered.length,

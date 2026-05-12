@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import '../../config/app_colors.dart';
+import '../../config/language.dart';
 import '../../services/order_service.dart';
 import 'order_confirm_screen.dart';
 import 'supplier_detail_screen.dart';
@@ -41,7 +42,16 @@ class _MatchingSuppliersScreenState extends State<MatchingSuppliersScreen> {
   @override
   void initState() {
     super.initState();
+    appLang.addListener(_onLangChange);
     _load();
+  }
+
+  void _onLangChange() => setState(() {});
+
+  @override
+  void dispose() {
+    appLang.removeListener(_onLangChange);
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -139,8 +149,8 @@ class _MatchingSuppliersScreenState extends State<MatchingSuppliersScreen> {
             expandedHeight: 156,
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: const EdgeInsets.only(left: 56, bottom: 14),
-              title: const Text('Nearby Suppliers',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
+              title: Text(S('nearby_suppliers'),
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
               background: Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
@@ -198,8 +208,8 @@ class _MatchingSuppliersScreenState extends State<MatchingSuppliersScreen> {
                 ),
                 child: TextField(
                   onChanged: (v) => setState(() => _query = v),
-                  decoration: const InputDecoration(
-                    hintText: 'Search supplier or area...',
+                  decoration: InputDecoration(
+                    hintText: S('search_supplier_hint'),
                     prefixIcon: Icon(Icons.search_rounded,
                         color: AppColors.textGrey),
                     border: InputBorder.none,
@@ -217,9 +227,9 @@ class _MatchingSuppliersScreenState extends State<MatchingSuppliersScreen> {
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 children: [
-                  _sortChip('Nearest', Icons.near_me_rounded, _SortBy.nearest),
-                  _sortChip('Cheapest', Icons.attach_money_rounded, _SortBy.cheapest),
-                  _sortChip('Top Rated', Icons.star_rounded, _SortBy.topRated),
+                  _sortChip(S('sort_nearest'), Icons.near_me_rounded, _SortBy.nearest),
+                  _sortChip(S('sort_cheapest'), Icons.attach_money_rounded, _SortBy.cheapest),
+                  _sortChip(S('sort_top_rated'), Icons.star_rounded, _SortBy.topRated),
                 ],
               ),
             ),
@@ -521,25 +531,25 @@ class _MatchingSuppliersScreenState extends State<MatchingSuppliersScreen> {
                 size: 54, color: AppColors.primary),
           ),
           const SizedBox(height: 18),
-          const Text('No suppliers found',
-              style: TextStyle(
+          Text(S('no_suppliers_found'),
+              style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
                   color: AppColors.textDark)),
           const SizedBox(height: 6),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 40),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
             child: Text(
-              'No stockholder within 10km has this product right now. Pull to refresh or try later.',
+              S('no_suppliers_subtitle'),
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textGrey, fontSize: 13),
+              style: const TextStyle(color: AppColors.textGrey, fontSize: 13),
             ),
           ),
           const SizedBox(height: 16),
           OutlinedButton.icon(
             onPressed: _load,
             icon: const Icon(Icons.refresh_rounded),
-            label: const Text('Refresh'),
+            label: Text(S('refresh_btn')),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.primary,
               side: const BorderSide(color: AppColors.primary),

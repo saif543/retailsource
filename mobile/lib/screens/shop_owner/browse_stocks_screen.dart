@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/order_service.dart';
 import '../../services/demand_service.dart';
+import '../../config/language.dart';
 import 'stock_order_screen.dart';
 
 const _c0  = Color(0xFF060D28);
@@ -65,10 +66,10 @@ class _BSS extends State<BrowseStocksScreen> with SingleTickerProviderStateMixin
       vsync: this, duration: const Duration(milliseconds: 380));
 
   @override
-  void initState() { super.initState(); _loadCats(); _search(); }
-
+  void initState() { super.initState(); appLang.addListener(_onLangChange); _loadCats(); _search(); }
+  void _onLangChange() => setState(() {});
   @override
-  void dispose() { _debounce?.cancel(); _ctrl.dispose(); _fadeC.dispose(); super.dispose(); }
+  void dispose() { appLang.removeListener(_onLangChange); _debounce?.cancel(); _ctrl.dispose(); _fadeC.dispose(); super.dispose(); }
 
   Future<void> _loadCats() async {
     final cats = await DemandService.getCategories();
@@ -152,8 +153,8 @@ class _BSS extends State<BrowseStocksScreen> with SingleTickerProviderStateMixin
                     ),
                   ),
                 ),
-              const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Browse Stocks', style: TextStyle(color: Colors.white,
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(S('browse_stocks_title'), style: const TextStyle(color: Colors.white,
                     fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -.4)),
                 SizedBox(height: 2),
                 Text('Available stock within 10 km',
@@ -185,7 +186,7 @@ class _BSS extends State<BrowseStocksScreen> with SingleTickerProviderStateMixin
                 onChanged: _onChanged,
                 style: const TextStyle(fontSize: 14, color: _txt),
                 decoration: InputDecoration(
-                  hintText: 'Search rice, oil, paint, supplier...',
+                  hintText: S('search_stocks_hint'),
                   hintStyle: TextStyle(color: _sub.withOpacity(.7), fontSize: 13.5),
                   prefixIcon: const Icon(Icons.search_rounded, color: _sub, size: 20),
                   suffixIcon: _ctrl.text.isNotEmpty
@@ -382,7 +383,7 @@ class _BSS extends State<BrowseStocksScreen> with SingleTickerProviderStateMixin
       ),
       child: const Icon(Icons.search_off_rounded, size: 44, color: Colors.white)),
     const SizedBox(height: 20),
-    const Text('No stocks found', style: TextStyle(fontSize: 18,
+    Text(S('no_stocks_found'), style: const TextStyle(fontSize: 18,
         fontWeight: FontWeight.w800, color: _txt)),
     const SizedBox(height: 8),
     const Padding(

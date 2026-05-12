@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/profile_service.dart';
+import '../../config/language.dart';
 
 const _c0  = Color(0xFF060D28);
 const _c1  = Color(0xFF0E2260);
@@ -66,6 +67,7 @@ class _EPS extends State<EditProfileScreen> with SingleTickerProviderStateMixin 
   @override
   void initState() {
     super.initState();
+    appLang.addListener(_onLangChange);
     _fadeC.forward();
     final p    = widget.profileData;
     final prof = (p?['profile'] as Map?) ?? {};
@@ -82,8 +84,11 @@ class _EPS extends State<EditProfileScreen> with SingleTickerProviderStateMixin 
     }
   }
 
+  void _onLangChange() => setState(() {});
+
   @override
   void dispose() {
+    appLang.removeListener(_onLangChange);
     _nameCtrl.dispose(); _bizCtrl.dispose();
     _addrCtrl.dispose(); _areaCtrl.dispose();
     _fadeC.dispose();
@@ -138,10 +143,10 @@ class _EPS extends State<EditProfileScreen> with SingleTickerProviderStateMixin 
           Expanded(child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _fieldLabel('Full Name'),
+              _fieldLabel(S('full_name')),
               _field(_nameCtrl, hint: 'Your full name'),
               const SizedBox(height: 16),
-              _fieldLabel(_isSH ? 'Company Name' : 'Shop Name'),
+              _fieldLabel(_isSH ? S('company_name') : S('shop_name')),
               _field(_bizCtrl,  hint: _isSH ? 'e.g. Khan Wholesale Ltd' : 'e.g. Al-Amin Grocery'),
               const SizedBox(height: 16),
               _fieldLabel(_isSH ? 'Warehouse Address' : 'Shop Address'),
@@ -191,12 +196,12 @@ class _EPS extends State<EditProfileScreen> with SingleTickerProviderStateMixin 
                 ),
               ),
               const SizedBox(width: 14),
-              const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Edit Profile', style: TextStyle(color: Colors.white,
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(S('edit_profile_title'), style: const TextStyle(color: Colors.white,
                     fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -.4)),
-                SizedBox(height: 2),
-                Text('Update your information',
-                    style: TextStyle(color: Colors.white54, fontSize: 12.5)),
+                const SizedBox(height: 2),
+                Text(S('edit_profile_subtitle'),
+                    style: const TextStyle(color: Colors.white54, fontSize: 12.5)),
               ])),
             ]),
             const SizedBox(height: 20),
@@ -271,10 +276,10 @@ class _EPS extends State<EditProfileScreen> with SingleTickerProviderStateMixin 
         Center(child: _saving
             ? const SizedBox(width: 22, height: 22,
                 child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-            : const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-                SizedBox(width: 10),
-                Text('Save Changes', style: TextStyle(color: Colors.white,
+            : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 10),
+                Text(S('save_changes_btn'), style: const TextStyle(color: Colors.white,
                     fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: .2)),
               ])),
       ]),

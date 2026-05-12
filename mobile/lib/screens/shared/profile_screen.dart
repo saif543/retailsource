@@ -7,6 +7,7 @@ import '../../services/rating_service.dart';
 import '../../services/location_service.dart';
 import 'edit_profile_screen.dart';
 import 'location_picker_screen.dart';
+import '../../config/language.dart';
 
 // ── palette ───────────────────────────────────────────────────────────────────
 const _c0  = Color(0xFF060D28);
@@ -16,18 +17,18 @@ const _c3  = Color(0xFF6C3FE8);
 const _bg  = Color(0xFFF2F5FF);
 const _txt = Color(0xFF212121);
 const _sub = Color(0xFF757575);
-const _grn1 = Color(0xFF054F3A);
-const _grn2 = Color(0xFF0FBB84);
+const _grn1 = Color(0xFF3B0D6B);
+const _grn2 = Color(0xFFBB6BF7);
 const _amb1 = Color(0xFFAD4A0A);
 const _amb2 = Color(0xFFF5981E);
 const _red1 = Color(0xFF7B1C1C);
 const _red2 = Color(0xFFEF5350);
 
-// stockholder gradient
-const _sg0 = Color(0xFF012B1E);
-const _sg1 = Color(0xFF054F3A);
-const _sg2 = Color(0xFF0A7A56);
-const _sg3 = Color(0xFF0FBB84);
+// stockholder gradient (purple)
+const _sg0 = Color(0xFF16002E);
+const _sg1 = Color(0xFF3B0D6B);
+const _sg2 = Color(0xFF7B2FD4);
+const _sg3 = Color(0xFFBB6BF7);
 
 class _Tap extends StatefulWidget {
   final Widget child; final VoidCallback onTap;
@@ -74,8 +75,20 @@ class _PS extends State<ProfileScreen> with SingleTickerProviderStateMixin {
       : const [_c0, _c1, _c2, _c3];
 
   @override
-  void initState() { super.initState(); _load(); }
-  @override void dispose() { _fadeC.dispose(); super.dispose(); }
+  void initState() {
+    super.initState();
+    appLang.addListener(_onLangChange);
+    _load();
+  }
+
+  void _onLangChange() => setState(() {});
+
+  @override
+  void dispose() {
+    appLang.removeListener(_onLangChange);
+    _fadeC.dispose();
+    super.dispose();
+  }
 
   Future<void> _load() async {
     setState(() => _loading = true);
@@ -127,7 +140,7 @@ class _PS extends State<ProfileScreen> with SingleTickerProviderStateMixin {
               ),
               child: const Icon(Icons.logout_rounded, color: _red1, size: 28)),
             const SizedBox(height: 16),
-            const Text('Log out?', style: TextStyle(fontSize: 18,
+            Text(S('log_out_title'), style: const TextStyle(fontSize: 18,
                 fontWeight: FontWeight.w900, color: _txt)),
             const SizedBox(height: 8),
             const Text('You will need to sign in again.',
@@ -139,16 +152,16 @@ class _PS extends State<ProfileScreen> with SingleTickerProviderStateMixin {
                   decoration: BoxDecoration(
                     color: const Color(0xFFEEF0FA),
                     borderRadius: BorderRadius.circular(12)),
-                  child: const Center(child: Text('Cancel',
-                      style: TextStyle(fontWeight: FontWeight.w700, color: _sub)))))),
+                  child: Center(child: Text(S('cancel'),
+                      style: const TextStyle(fontWeight: FontWeight.w700, color: _sub)))))),
               const SizedBox(width: 10),
               Expanded(child: _Tap(onTap: () => Navigator.pop(context, true),
                 child: Container(height: 46,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(colors: [_red1, _red2]),
                     borderRadius: BorderRadius.circular(12)),
-                  child: const Center(child: Text('Log out',
-                      style: TextStyle(fontWeight: FontWeight.w800,
+                  child: Center(child: Text(S('log_out'),
+                      style: const TextStyle(fontWeight: FontWeight.w800,
                           color: Colors.white)))))),
             ]),
           ]),
@@ -221,7 +234,7 @@ class _PS extends State<ProfileScreen> with SingleTickerProviderStateMixin {
                         padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
                         sliver: SliverList(delegate: SliverChildListDelegate([
                           // quick actions
-                          _sectionTitle('Quick Actions'),
+                          _sectionTitle(S('quick_actions')),
                           const SizedBox(height: 12),
                           _quickActions(),
                           const SizedBox(height: 24),
@@ -285,7 +298,7 @@ class _PS extends State<ProfileScreen> with SingleTickerProviderStateMixin {
             child: Column(children: [
               // top row
               Row(children: [
-                const Text('Profile', style: TextStyle(color: Colors.white,
+                Text(S('profile_title'), style: const TextStyle(color: Colors.white,
                     fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -.4)),
                 const Spacer(),
                 // refresh btn
@@ -333,7 +346,7 @@ class _PS extends State<ProfileScreen> with SingleTickerProviderStateMixin {
               Wrap(alignment: WrapAlignment.center, spacing: 8, children: [
                 _badge(tag, Icons.badge_rounded),
                 if (verified)
-                  _badge('Verified', Icons.verified_rounded,
+                  _badge(S('verified_badge'), Icons.verified_rounded,
                       color: _isSH ? _grn2 : _amb2),
                 if (rating != '—')
                   _badge('★  $rating', null),
@@ -375,7 +388,7 @@ class _PS extends State<ProfileScreen> with SingleTickerProviderStateMixin {
     return Row(children: [
       Expanded(child: _actionCard(
           icon: Icons.edit_rounded,
-          label: 'Edit Profile',
+          label: S('edit_profile_btn'),
           sub: 'Name & details',
           grad: [accent1, accent2],
           onTap: _editProfile)),
@@ -636,7 +649,7 @@ class _PS extends State<ProfileScreen> with SingleTickerProviderStateMixin {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF0FBF6),
+                        color: const Color(0xFFF5F0FF),
                         borderRadius: BorderRadius.circular(10)),
                       child: Text(review, style: const TextStyle(
                           fontSize: 13, color: _txt, height: 1.4))),
@@ -668,10 +681,10 @@ class _PS extends State<ProfileScreen> with SingleTickerProviderStateMixin {
         boxShadow: [BoxShadow(color: _red1.withOpacity(.05),
             blurRadius: 12, offset: const Offset(0, 4))],
       ),
-      child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(Icons.logout_rounded, color: _red1, size: 20),
-        SizedBox(width: 10),
-        Text('Log Out', style: TextStyle(color: _red1,
+      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        const Icon(Icons.logout_rounded, color: _red1, size: 20),
+        const SizedBox(width: 10),
+        Text(S('log_out'), style: const TextStyle(color: _red1,
             fontSize: 15, fontWeight: FontWeight.w800)),
       ]),
     ),

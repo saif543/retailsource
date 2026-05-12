@@ -1,12 +1,13 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/order_service.dart';
+import '../../config/language.dart';
 
-const _sg0 = Color(0xFF012B1E);
-const _sg1 = Color(0xFF054F3A);
-const _sg2 = Color(0xFF0A7A56);
-const _sg3 = Color(0xFF0FBB84);
-const _bg  = Color(0xFFF0FBF6);
+const _sp0 = Color(0xFF16002E);
+const _sp1 = Color(0xFF3B0D6B);
+const _sp2 = Color(0xFF7B2FD4);
+const _sp3 = Color(0xFFBB6BF7);
+const _bg  = Color(0xFFF8F0FF);
 const _txt = Color(0xFF212121);
 const _sub = Color(0xFF757575);
 const _ind1 = Color(0xFF2D238A);
@@ -52,7 +53,16 @@ class _VOS extends State<VerifyOtpScreen> {
   String _error = '';
 
   @override
+  void initState() {
+    super.initState();
+    appLang.addListener(_onLangChange);
+  }
+
+  void _onLangChange() => setState(() {});
+
+  @override
   void dispose() {
+    appLang.removeListener(_onLangChange);
     for (final c in _ctrls) c.dispose();
     for (final n in _nodes) n.dispose();
     super.dispose();
@@ -82,31 +92,31 @@ class _VOS extends State<VerifyOtpScreen> {
           child: Padding(padding: const EdgeInsets.all(28), child: Column(mainAxisSize: MainAxisSize.min, children: [
             Container(width: 72, height: 72,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [_sg1, _sg3],
+                gradient: const LinearGradient(colors: [_sp1, _sp3],
                     begin: Alignment.topLeft, end: Alignment.bottomRight),
                 shape: BoxShape.circle,
-                boxShadow: [BoxShadow(color: _sg3.withOpacity(.4),
+                boxShadow: [BoxShadow(color: _sp3.withOpacity(.4),
                     blurRadius: 18, offset: const Offset(0, 6))],
               ),
               child: const Icon(Icons.check_rounded, color: Colors.white, size: 38)),
             const SizedBox(height: 18),
-            const Text('Delivered!', style: TextStyle(
+            Text(S('delivered_title'), style: const TextStyle(
                 fontSize: 20, fontWeight: FontWeight.w900, color: _txt)),
             const SizedBox(height: 8),
-            const Text('OTP verified. Order has been successfully delivered.',
+            Text(S('otp_verified_message'),
                 textAlign: TextAlign.center,
-                style: TextStyle(color: _sub, fontSize: 13.5)),
+                style: const TextStyle(color: _sub, fontSize: 13.5)),
             const SizedBox(height: 24),
             _Tap(onTap: () { Navigator.pop(context); Navigator.pop(context, 'delivered'); },
               child: Container(width: double.infinity, height: 50,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [_sg1, _sg3]),
+                  gradient: const LinearGradient(colors: [_sp1, _sp3]),
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: [BoxShadow(color: _sg3.withOpacity(.4),
+                  boxShadow: [BoxShadow(color: _sp3.withOpacity(.4),
                       blurRadius: 14, offset: const Offset(0, 6))],
                 ),
-                child: const Center(child: Text('Done',
-                    style: TextStyle(color: Colors.white,
+                child: Center(child: Text(S('done_btn'),
+                    style: const TextStyle(color: Colors.white,
                         fontSize: 16, fontWeight: FontWeight.w900))))),
           ])),
         ),
@@ -144,12 +154,12 @@ class _VOS extends State<VerifyOtpScreen> {
                     child: const Icon(Icons.arrow_back_ios_new_rounded,
                         color: Colors.white, size: 17))),
                 const SizedBox(width: 14),
-                const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Confirm Delivery', style: TextStyle(color: Colors.white,
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(S('confirm_delivery_btn'), style: const TextStyle(color: Colors.white,
                       fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -.4)),
-                  SizedBox(height: 2),
-                  Text('Enter OTP from shop owner',
-                      style: TextStyle(color: Colors.white54, fontSize: 12.5)),
+                  const SizedBox(height: 2),
+                  Text(S('enter_otp_subtitle'),
+                      style: const TextStyle(color: Colors.white54, fontSize: 12.5)),
                 ])),
               ]),
             ),
@@ -169,26 +179,26 @@ class _VOS extends State<VerifyOtpScreen> {
               ),
               child: const Icon(Icons.vpn_key_rounded, color: Colors.white, size: 34)),
             const SizedBox(height: 20),
-            const Text('Enter 6-Digit OTP', style: TextStyle(
+            Text(S('enter_6digit_otp'), style: const TextStyle(
                 fontSize: 20, fontWeight: FontWeight.w900, color: _txt)),
             const SizedBox(height: 8),
-            const Text('Ask the shop owner for their delivery OTP code',
+            Text(S('ask_shop_owner_otp'),
                 textAlign: TextAlign.center,
-                style: TextStyle(color: _sub, fontSize: 13.5)),
+                style: const TextStyle(color: _sub, fontSize: 13.5)),
             const SizedBox(height: 28),
             // order summary
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white, borderRadius: BorderRadius.circular(18),
-                boxShadow: [BoxShadow(color: _sg1.withOpacity(.06),
+                boxShadow: [BoxShadow(color: _sp1.withOpacity(.06),
                     blurRadius: 14, offset: const Offset(0, 4))],
               ),
               child: Row(children: [
                 Container(width: 44, height: 44,
                   decoration: BoxDecoration(
-                    color: _sg3.withOpacity(.15), borderRadius: BorderRadius.circular(12)),
-                  child: const Icon(Icons.inventory_2_rounded, color: _sg2, size: 22)),
+                    color: _sp3.withOpacity(.15), borderRadius: BorderRadius.circular(12)),
+                  child: const Icon(Icons.inventory_2_rounded, color: _sp2, size: 22)),
                 const SizedBox(width: 12),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text((o['product'] as String?) ?? '', style: const TextStyle(
@@ -222,10 +232,10 @@ class _VOS extends State<VerifyOtpScreen> {
                 child: Center(child: _confirming
                     ? const SizedBox(width: 22, height: 22,
                         child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                    : const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-                        SizedBox(width: 10),
-                        Text('Confirm Delivery', style: TextStyle(color: Colors.white,
+                    : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                        const SizedBox(width: 10),
+                        Text(S('confirm_delivery_btn'), style: const TextStyle(color: Colors.white,
                             fontSize: 16, fontWeight: FontWeight.w900)),
                       ])))),
           ]),

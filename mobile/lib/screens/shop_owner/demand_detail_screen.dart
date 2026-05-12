@@ -408,6 +408,8 @@ class _DDS extends State<DemandDetailScreen> with SingleTickerProviderStateMixin
 
   // ── action buttons ────────────────────────────────────────────────────────
   Widget _actions(Map<String, dynamic> d, String status) {
+    if (status == 'fulfilled') return _fulfilledBanner(d);
+
     final lat = d['lat'] as double?;
     final lng = d['lng'] as double?;
 
@@ -432,13 +434,16 @@ class _DDS extends State<DemandDetailScreen> with SingleTickerProviderStateMixin
           width: double.infinity,
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [_c0, _c1, _c2, _c3],
-              stops: [0.0, 0.3, 0.7, 1.0],
+            gradient: LinearGradient(
+              colors: status == 'matched'
+                  ? [_amb1, _amb2] : [_c0, _c1, _c2, _c3],
+              stops: status == 'matched'
+                  ? null : const [0.0, 0.3, 0.7, 1.0],
               begin: Alignment.topLeft, end: Alignment.bottomRight),
             borderRadius: BorderRadius.circular(22),
             boxShadow: [
-              BoxShadow(color: _c2.withOpacity(.45),
+              BoxShadow(
+                  color: (status == 'matched' ? _amb2 : _c2).withOpacity(.45),
                   blurRadius: 22, spreadRadius: -2, offset: const Offset(0, 10)),
             ],
             border: Border.all(color: Colors.white.withOpacity(.1)),
@@ -450,8 +455,10 @@ class _DDS extends State<DemandDetailScreen> with SingleTickerProviderStateMixin
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.white.withOpacity(.3)),
               ),
-              child: const Icon(Icons.travel_explore_rounded,
-                  color: Colors.white, size: 26)),
+              child: Icon(
+                status == 'matched'
+                    ? Icons.handshake_rounded : Icons.travel_explore_rounded,
+                color: Colors.white, size: 26)),
             const SizedBox(width: 16),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(status == 'matched' ? 'View Matches' : 'Find Suppliers',
@@ -459,7 +466,7 @@ class _DDS extends State<DemandDetailScreen> with SingleTickerProviderStateMixin
                       fontWeight: FontWeight.w900, letterSpacing: -.2)),
               const SizedBox(height: 4),
               Text(status == 'matched'
-                  ? 'Suppliers responded — browse and order'
+                  ? 'Suppliers responded — browse and place order'
                   : 'See nearby stockholders within 10 km',
                   style: TextStyle(color: Colors.white.withOpacity(.7),
                       fontSize: 12.5, height: 1.3)),
@@ -505,6 +512,106 @@ class _DDS extends State<DemandDetailScreen> with SingleTickerProviderStateMixin
       ],
     ]);
   }
+
+  // ── fulfilled completion banner ───────────────────────────────────────────
+  Widget _fulfilledBanner(Map<String, dynamic> d) => Column(children: [
+    // green completion card
+    Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+            colors: [_grn1, _grn2],
+            begin: Alignment.topLeft, end: Alignment.bottomRight),
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [BoxShadow(color: _grn2.withOpacity(.4),
+            blurRadius: 22, spreadRadius: -2, offset: const Offset(0, 10))],
+      ),
+      child: Column(children: [
+        Row(children: [
+          Container(width: 56, height: 56,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(.2),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white.withOpacity(.35), width: 2),
+            ),
+            child: const Icon(Icons.check_circle_rounded,
+                color: Colors.white, size: 30)),
+          const SizedBox(width: 16),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Delivery Completed',
+                style: TextStyle(color: Colors.white,
+                    fontSize: 18, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 4),
+            Text('${d['product_name']} · ${d['variant_name']}',
+                style: TextStyle(color: Colors.white.withOpacity(.8),
+                    fontSize: 13, fontWeight: FontWeight.w600)),
+          ])),
+        ]),
+        const SizedBox(height: 18),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(.15),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.white.withOpacity(.25)),
+          ),
+          child: Row(children: [
+            _completionStat(Icons.scale_rounded,
+                '${d['quantity']} ${d['unit']}', 'Ordered'),
+            _completionDivider(),
+            _completionStat(Icons.place_rounded,
+                (d['location_area'] ?? '').toString().isNotEmpty
+                    ? d['location_area'] as String : 'Your location',
+                'Delivered to'),
+            _completionDivider(),
+            _completionStat(Icons.access_time_rounded,
+                _timeAgo(d['created_at'] as String?), 'Posted'),
+          ]),
+        ),
+      ]),
+    ),
+    const SizedBox(height: 14),
+    // "View My Orders" shortcut
+    _Tap(
+      onTap: () => Navigator.pop(context),
+      child: Container(
+        width: double.infinity, height: 52,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _grn2.withOpacity(.4), width: 1.5),
+          boxShadow: [BoxShadow(color: _grn2.withOpacity(.12),
+              blurRadius: 12, offset: const Offset(0, 4))],
+        ),
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          const Icon(Icons.receipt_long_rounded, color: _grn1, size: 18),
+          const SizedBox(width: 8),
+          const Text('Back to My Demands',
+              style: TextStyle(color: _grn1, fontSize: 14,
+                  fontWeight: FontWeight.w800)),
+        ]),
+      ),
+    ),
+  ]);
+
+  Widget _completionStat(IconData icon, String value, String label) =>
+    Expanded(child: Column(children: [
+      Icon(icon, color: Colors.white70, size: 15),
+      const SizedBox(height: 5),
+      Text(value, maxLines: 1, overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: Colors.white,
+              fontSize: 12.5, fontWeight: FontWeight.w800)),
+      const SizedBox(height: 2),
+      Text(label, style: TextStyle(
+          color: Colors.white.withOpacity(.65), fontSize: 10.5)),
+    ]));
+
+  Widget _completionDivider() => Container(
+      width: 1, height: 44,
+      color: Colors.white.withOpacity(.25),
+      margin: const EdgeInsets.symmetric(horizontal: 4));
 
   // ── helpers ───────────────────────────────────────────────────────────────
   BoxDecoration _cardDeco() => BoxDecoration(
