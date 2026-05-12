@@ -20,6 +20,7 @@ class ApiConfig {
   // Products
   static String get categories => '$baseUrl/products/categories';
   static String productsByCategory(int catId) => '$baseUrl/products/by-category/$catId';
+<<<<<<< Updated upstream
   static String productVariants(int productId) => '$baseUrl/products/$productId/variants';
 
   // Demands (shop owner)
@@ -76,4 +77,14 @@ class ApiConfig {
   static String get submitRating => '$baseUrl/ratings/submit';
   static String get myRatings => '$baseUrl/ratings/my';
   static String get unratedOrders => '$baseUrl/ratings/unrated';
+=======
+
+  // Demands
+  static String get createDemand => '$baseUrl/demands/create';
+  static String get myDemands => '$baseUrl/demands/my';
+  static String demandById(int id) => '$baseUrl/demands/$id';
+
+  // Shop dashboard
+  static String get shopStats => '$baseUrl/shop/stats';
+>>>>>>> Stashed changes
 }

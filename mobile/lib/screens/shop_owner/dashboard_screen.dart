@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../config/app_colors.dart';
 import '../../services/auth_service.dart';
 import '../../services/demand_service.dart';
+<<<<<<< Updated upstream
 import '../../services/order_service.dart';
 import '../../services/profile_service.dart';
 import '../../services/notification_service.dart';
@@ -20,6 +21,10 @@ import '../shared/profile_screen.dart';
 import '../../services/location_service.dart';
 import '../shared/location_picker_screen.dart';
 import '../../config/language.dart';
+=======
+import 'post_demand_screen.dart';
+import 'my_demands_screen.dart';
+>>>>>>> Stashed changes
 
 // ── palette ───────────────────────────────────────────────────────────────────
 const _c0 = Color(0xFF060D28);   // deepest navy
@@ -67,6 +72,7 @@ class ShopOwnerDashboard extends StatefulWidget {
   @override State<ShopOwnerDashboard> createState() => _DS();
 }
 
+<<<<<<< Updated upstream
 class _DS extends State<ShopOwnerDashboard> with TickerProviderStateMixin {
   int _tab = 0;
   Map<String, int> _stats = {'open_demands': 0, 'matched_demands': 0, 'active_orders': 0};
@@ -75,6 +81,27 @@ class _DS extends State<ShopOwnerDashboard> with TickerProviderStateMixin {
   bool _busy = false, _hasLoc = true;
   double? _lat, _lng;
   String _locAddress = '';
+=======
+class _ShopOwnerDashboardState extends State<ShopOwnerDashboard> {
+  int _currentTab = 0;
+  Map<String, int> _stats = {
+    'open_demands': 0,
+    'matched_demands': 0,
+    'active_orders': 0,
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStats();
+  }
+
+  Future<void> _loadStats() async {
+    final s = await DemandService.getShopStats();
+    if (!mounted) return;
+    setState(() => _stats = s);
+  }
+>>>>>>> Stashed changes
 
   late final _hC = AnimationController(vsync: this, duration: const Duration(milliseconds: 750));
   late final _lC = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
@@ -668,6 +695,7 @@ class _DS extends State<ShopOwnerDashboard> with TickerProviderStateMixin {
             BoxShadow(color: Colors.black.withOpacity(.04), blurRadius: 4, offset: const Offset(0, 2)),
           ],
         ),
+<<<<<<< Updated upstream
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             Container(width: 34, height: 34,
@@ -691,13 +719,185 @@ class _DS extends State<ShopOwnerDashboard> with TickerProviderStateMixin {
           Text('${d['quantity']} ${d['unit']}',
               style: TextStyle(color: AppColors.textGrey.withOpacity(.8), fontSize: 12)),
         ]),
+=======
+      ),
+      bottomNavigationBar: _buildBottomNav(),
+    );
+  }
+
+  // ── Header ─────────────────────────────────────────────
+  Widget _buildHeader() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.primaryDark, AppColors.primary],
+        ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(28),
+          bottomRight: Radius.circular(28),
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(Icons.storefront_rounded,
+                    color: Colors.white, size: 26),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Assalamu Alaikum 👋',
+                        style: TextStyle(
+                            color: Colors.white70, fontSize: 13)),
+                    const SizedBox(height: 2),
+                    Text(
+                      widget.shopName,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 19,
+                          fontWeight: FontWeight.w800),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              _circleIcon(Icons.notifications_outlined, badge: '3'),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: _confirmLogout,
+                child: _circleIcon(Icons.logout_rounded),
+              ),
+            ],
+          ),
+          const SizedBox(height: 22),
+          Row(
+            children: [
+              Expanded(
+                child: _statTile('${_stats['open_demands']}', 'Open\nDemands',
+                    Icons.assignment_outlined),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _statTile('${_stats['matched_demands']}', 'Matched\nDemands',
+                    Icons.handshake_outlined),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _statTile('${_stats['active_orders']}', 'Orders\nNow',
+                    Icons.shopping_cart_outlined),
+              ),
+            ],
+          ),
+        ],
+>>>>>>> Stashed changes
       ),
     );
   }
 
+<<<<<<< Updated upstream
   Widget _addDemandCard() {
     return _Tap(
       onTap: () => _go(const PostDemandScreen()),
+=======
+  Widget _circleIcon(IconData icon, {String? badge}) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.2),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: Colors.white, size: 20),
+        ),
+        if (badge != null)
+          Positioned(
+            top: -2,
+            right: -2,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                color: Color(0xFFE65100),
+                shape: BoxShape.circle,
+              ),
+              constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+              child: Text(badge,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700)),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _statTile(String count, String label, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.18),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: Colors.white, size: 20),
+          const SizedBox(height: 6),
+          Text(count,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800)),
+          const SizedBox(height: 2),
+          Text(label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 11,
+                  height: 1.2)),
+        ],
+      ),
+    );
+  }
+
+  // ── Big "Post Demand" card ─────────────────────────────
+  Future<void> _openPostDemand() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const PostDemandScreen()),
+    );
+    _loadStats();
+  }
+
+  Future<void> _openMyDemands() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const MyDemandsScreen()),
+    );
+    _loadStats();
+  }
+
+  Widget _buildPostDemandCard() {
+    return GestureDetector(
+      onTap: _openPostDemand,
+>>>>>>> Stashed changes
       child: Container(
         width: 110,
         decoration: BoxDecoration(
@@ -872,9 +1072,131 @@ class _DS extends State<ShopOwnerDashboard> with TickerProviderStateMixin {
                   begin: Alignment.topLeft, end: Alignment.bottomRight),
               shape: BoxShape.circle,
             ),
+<<<<<<< Updated upstream
             child: Center(child: Text(initials,
                 style: const TextStyle(color: Colors.white,
                     fontWeight: FontWeight.w900, fontSize: 14)))),
+=======
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Need stock?',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800)),
+                  SizedBox(height: 2),
+                  Text('Post what you need — we\'ll find suppliers near you',
+                      style: TextStyle(color: Colors.white, fontSize: 12)),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_rounded, color: Colors.white),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Quick action grid ─────────────────────────────────
+  Widget _buildQuickActions() {
+    final actions = <(String, IconData, Color, VoidCallback)>[
+      ('Post\nDemand', Icons.add_shopping_cart_rounded, AppColors.primary, _openPostDemand),
+      ('My\nDemands', Icons.list_alt_rounded, const Color(0xFF7B1FA2), _openMyDemands),
+      ('My\nOrders', Icons.local_shipping_rounded, const Color(0xFF2E7D32), () {}),
+      ('Rate &\nReview', Icons.star_rounded, const Color(0xFFE65100), () {}),
+    ];
+    return GridView.count(
+      crossAxisCount: 4,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 10,
+      crossAxisSpacing: 10,
+      childAspectRatio: 0.85,
+      children: actions
+          .map((a) => _quickAction(a.$1, a.$2, a.$3, a.$4))
+          .toList(),
+    );
+  }
+
+  Widget _quickAction(String label, IconData icon, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(height: 8),
+          Text(label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textDark,
+                  height: 1.2)),
+        ],
+      ),
+    ),
+    );
+  }
+
+  Widget _sectionTitle(String text) {
+    return Text(text,
+        style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: AppColors.textDark));
+  }
+
+  // ── Order card ─────────────────────────────────────────
+  Widget _buildOrderCard(Map<String, dynamic> o) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: (o['statusColor'] as Color).withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(o['icon'] as IconData,
+                color: o['statusColor'] as Color, size: 24),
+          ),
+>>>>>>> Stashed changes
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(supplier, style: const TextStyle(fontWeight: FontWeight.w800,
