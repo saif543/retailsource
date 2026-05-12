@@ -285,13 +285,6 @@ class _SODS extends State<StockholderOrderDetailScreen> {
     final product = (_order['product'] as String?) ?? '';
     final qty = (_order['qty'] as String?) ?? '';
     final price = (_order['price'] as num?)?.toDouble() ?? 0.0;
-    final createdAt = _order['created_at'] as String?;
-    final acceptedAt = _order['accepted_at'] as String?;
-
-    final stepAccepted = ['accepted', 'out_for_delivery', 'delivered'].contains(_status);
-    final stepOnWay = ['out_for_delivery', 'delivered'].contains(_status);
-    final stepDelivered = _status == 'delivered';
-
     return Scaffold(
       backgroundColor: _bg,
       body: Column(children: [
@@ -382,8 +375,68 @@ class _SODS extends State<StockholderOrderDetailScreen> {
             ),
             const SizedBox(height: 14),
 
-            // OTP input — shown when out_for_delivery
-            if (_status == 'out_for_delivery') ...[
+            // Prominent delivery tracker — always visible
+            _prominentTracker(),
+            const SizedBox(height: 16),
+
+            // Context: pending → accept/decline
+            if (_status == 'pending') ...[
+              Row(children: [
+                Expanded(child: _Tap(onTap: _loading ? () {} : _acceptOrder,
+                  child: Container(height: 52,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: [_sp1, _sp3]),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [BoxShadow(color: _sp3.withOpacity(.35),
+                          blurRadius: 14, offset: const Offset(0, 6))],
+                    ),
+                    child: Center(child: _loading
+                        ? const SizedBox(width: 22, height: 22,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                        : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                            const Icon(Icons.check_rounded, color: Colors.white, size: 18),
+                            const SizedBox(width: 8),
+                            Text(S('accept_order_btn'), style: const TextStyle(color: Colors.white,
+                                fontSize: 15, fontWeight: FontWeight.w900)),
+                          ]))))),
+                const SizedBox(width: 10),
+                Expanded(child: _Tap(onTap: _loading ? () {} : _declineOrder,
+                  child: Container(height: 52,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: _red2.withOpacity(.6), width: 1.5),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Center(child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center, children: [
+                      const Icon(Icons.close_rounded, color: _red2, size: 18),
+                      const SizedBox(width: 8),
+                      Text(S('decline_btn'), style: const TextStyle(color: _red2,
+                          fontSize: 15, fontWeight: FontWeight.w800)),
+                    ]))))),
+              ]),
+
+            // Context: accepted → mark out for delivery
+            ] else if (_status == 'accepted') ...[
+              _Tap(onTap: _loading ? () {} : _markOutForDelivery,
+                child: Container(width: double.infinity, height: 52,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: [_ind1, _ind2]),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [BoxShadow(color: _ind2.withOpacity(.35),
+                        blurRadius: 14, offset: const Offset(0, 6))],
+                  ),
+                  child: Center(child: _loading
+                      ? const SizedBox(width: 22, height: 22,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                      : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                          const Icon(Icons.local_shipping_rounded, color: Colors.white, size: 20),
+                          const SizedBox(width: 10),
+                          Text(S('mark_out_delivery'), style: const TextStyle(color: Colors.white,
+                              fontSize: 15, fontWeight: FontWeight.w900)),
+                        ])))),
+
+            // Context: out_for_delivery → OTP entry
+            ] else if (_status == 'out_for_delivery') ...[
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -444,87 +497,14 @@ class _SODS extends State<StockholderOrderDetailScreen> {
                             ])))),
                 ]),
               ),
-              const SizedBox(height: 14),
-            ],
 
-            // Timeline
-            _card(
-              icon: Icons.local_shipping_outlined,
-              title: 'Delivery Progress',
-              child: Column(children: [
-                _step('Order Placed', _fmt(createdAt).isEmpty ? 'Just now' : _fmt(createdAt), true,
-                    grad: const [_sp1, _sp3]),
-                _step('Order Accepted', stepAccepted
-                    ? (_fmt(acceptedAt).isEmpty ? 'Done' : _fmt(acceptedAt)) : 'Pending',
-                    stepAccepted, grad: const [_sp1, _sp3], current: _status == 'accepted'),
-                _step('Out for Delivery', stepOnWay ? 'On the way' : 'Pending',
-                    stepOnWay, grad: const [_ind1, _ind2], current: _status == 'out_for_delivery'),
-                _step('Delivered', stepDelivered ? 'Complete' : 'Pending',
-                    stepDelivered, grad: const [_sp1, _sp3]),
-              ]),
-            ),
-            const SizedBox(height: 20),
-
-            // Action buttons
-            if (_status == 'pending') ...[
-              Row(children: [
-                Expanded(child: _Tap(onTap: _loading ? () {} : _acceptOrder,
-                  child: Container(height: 52,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(colors: [_sp1, _sp3]),
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [BoxShadow(color: _sp3.withOpacity(.35),
-                          blurRadius: 14, offset: const Offset(0, 6))],
-                    ),
-                    child: Center(child: _loading
-                        ? const SizedBox(width: 22, height: 22,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                        : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                            const Icon(Icons.check_rounded, color: Colors.white, size: 18),
-                            const SizedBox(width: 8),
-                            Text(S('accept_order_btn'), style: const TextStyle(color: Colors.white,
-                                fontSize: 15, fontWeight: FontWeight.w900)),
-                          ]))))),
-                const SizedBox(width: 10),
-                Expanded(child: _Tap(onTap: _loading ? () {} : _declineOrder,
-                  child: Container(height: 52,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: _red2.withOpacity(.6), width: 1.5),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Center(child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center, children: [
-                      const Icon(Icons.close_rounded, color: _red2, size: 18),
-                      const SizedBox(width: 8),
-                      Text(S('decline_btn'), style: const TextStyle(color: _red2,
-                          fontSize: 15, fontWeight: FontWeight.w800)),
-                    ]))))),
-              ]),
-            ] else if (_status == 'accepted') ...[
-              _Tap(onTap: _loading ? () {} : _markOutForDelivery,
-                child: Container(width: double.infinity, height: 52,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [_ind1, _ind2]),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [BoxShadow(color: _ind2.withOpacity(.35),
-                        blurRadius: 14, offset: const Offset(0, 6))],
-                  ),
-                  child: Center(child: _loading
-                      ? const SizedBox(width: 22, height: 22,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                      : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                          const Icon(Icons.local_shipping_rounded, color: Colors.white, size: 20),
-                          const SizedBox(width: 10),
-                          Text(S('mark_out_delivery'), style: const TextStyle(color: Colors.white,
-                              fontSize: 15, fontWeight: FontWeight.w900)),
-                        ])))),
+            // Context: delivered → success + receipt
             ] else if (_status == 'delivered') ...[
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(colors: [
-                    _sp1.withOpacity(.08),
-                    _sp3.withOpacity(.08)]),
+                    _sp1.withOpacity(.08), _sp3.withOpacity(.08)]),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: _sp3.withOpacity(.4)),
                 ),
@@ -685,22 +665,126 @@ class _SODS extends State<StockholderOrderDetailScreen> {
     ]),
   );
 
-  Widget _step(String label, String time, bool done,
-      {List<Color> grad = const [_sp1, _sp3], bool current = false}) =>
-    Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: Row(children: [
-      Container(width: 16, height: 16,
+  Widget _prominentTracker() {
+    final stepAccepted = ['accepted', 'out_for_delivery', 'delivered'].contains(_status);
+    final stepOnWay    = ['out_for_delivery', 'delivered'].contains(_status);
+    final stepDelivered = _status == 'delivered';
+
+    Color statusColor() {
+      switch (_status) {
+        case 'accepted': return _sp3;
+        case 'out_for_delivery': return _ind2;
+        case 'delivered': return const Color(0xFF0FBB84);
+        default: return _amb2;
+      }
+    }
+    String statusBadge() {
+      switch (_status) {
+        case 'accepted': return 'ACCEPTED';
+        case 'out_for_delivery': return 'ON THE WAY';
+        case 'delivered': return 'DELIVERED';
+        default: return 'PENDING';
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _sp3.withOpacity(.2)),
+        boxShadow: [BoxShadow(color: _sp1.withOpacity(.07),
+            blurRadius: 16, offset: const Offset(0, 4))],
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(width: 28, height: 28,
+            decoration: BoxDecoration(color: _sp3.withOpacity(.15),
+                borderRadius: BorderRadius.circular(7)),
+            child: const Icon(Icons.local_shipping_rounded, size: 14, color: _sp2)),
+          const SizedBox(width: 8),
+          const Text('Delivery Progress', style: TextStyle(
+              fontWeight: FontWeight.w900, fontSize: 14, color: _txt)),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: statusColor().withOpacity(.12),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(statusBadge(), style: TextStyle(
+                color: statusColor(), fontWeight: FontWeight.w800, fontSize: 10)),
+          ),
+        ]),
+        const SizedBox(height: 18),
+        SizedBox(
+          height: 62,
+          child: Stack(children: [
+            // Connector lines (behind dots)
+            Positioned(
+              top: 17, left: 44, right: 44,
+              child: Row(children: [
+                Expanded(child: Container(height: 3,
+                  decoration: BoxDecoration(
+                    gradient: stepAccepted
+                        ? const LinearGradient(colors: [_sp1, _sp3]) : null,
+                    color: stepAccepted ? null : const Color(0xFFE0E0E0),
+                    borderRadius: BorderRadius.circular(2)))),
+                Expanded(child: Container(height: 3,
+                  decoration: BoxDecoration(
+                    gradient: stepOnWay
+                        ? const LinearGradient(colors: [_ind1, _ind2]) : null,
+                    color: stepOnWay ? null : const Color(0xFFE0E0E0),
+                    borderRadius: BorderRadius.circular(2)))),
+                Expanded(child: Container(height: 3,
+                  decoration: BoxDecoration(
+                    gradient: stepDelivered
+                        ? const LinearGradient(
+                            colors: [Color(0xFF054F3A), Color(0xFF0FBB84)]) : null,
+                    color: stepDelivered ? null : const Color(0xFFE0E0E0),
+                    borderRadius: BorderRadius.circular(2)))),
+              ]),
+            ),
+            // Step nodes (on top)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _tNode(true,          [_sp1, _sp3], false, 'Placed'),
+                _tNode(stepAccepted,  [_sp1, _sp3], _status == 'accepted', 'Accepted'),
+                _tNode(stepOnWay, [_ind1, _ind2], _status == 'out_for_delivery', 'On Way'),
+                _tNode(stepDelivered,
+                    [const Color(0xFF054F3A), const Color(0xFF0FBB84)],
+                    _status == 'delivered', 'Done'),
+              ],
+            ),
+          ]),
+        ),
+      ]),
+    );
+  }
+
+  Widget _tNode(bool done, List<Color> grad, bool isCurrent, String label) =>
+    SizedBox(width: 60, child: Column(children: [
+      Container(width: 36, height: 36,
         decoration: BoxDecoration(
-          gradient: done ? LinearGradient(colors: grad) : null,
-          color: done ? null : const Color(0xFFE0E0E0),
+          gradient: done
+              ? LinearGradient(colors: grad,
+                  begin: Alignment.topLeft, end: Alignment.bottomRight)
+              : null,
+          color: done ? null : const Color(0xFFECECEC),
           shape: BoxShape.circle,
-        )),
-      const SizedBox(width: 12),
-      Expanded(child: Text(label, style: TextStyle(
-          fontWeight: FontWeight.w800, fontSize: 13,
-          color: done ? _txt : _sub))),
-      Text(time, style: TextStyle(
-          fontSize: 12,
-          color: current ? grad.last : _sub,
-          fontWeight: current ? FontWeight.w800 : FontWeight.w500)),
+          boxShadow: isCurrent ? [BoxShadow(color: grad.last.withOpacity(.45),
+              blurRadius: 14, spreadRadius: 1, offset: const Offset(0, 2))] : null,
+        ),
+        child: Center(child: Icon(
+          done ? Icons.check_rounded : Icons.radio_button_unchecked_rounded,
+          color: done ? Colors.white : const Color(0xFFBBBBBB), size: 18))),
+      const SizedBox(height: 5),
+      Text(label, textAlign: TextAlign.center, style: TextStyle(
+        fontSize: 10,
+        fontWeight: isCurrent ? FontWeight.w900 : (done ? FontWeight.w700 : FontWeight.w500),
+        color: isCurrent ? grad.last : (done ? _txt : _sub),
+      )),
     ]));
 }

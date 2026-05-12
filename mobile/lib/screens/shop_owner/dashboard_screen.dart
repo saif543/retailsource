@@ -78,6 +78,7 @@ class _DS extends State<ShopOwnerDashboard> with TickerProviderStateMixin {
 
   late final _hC = AnimationController(vsync: this, duration: const Duration(milliseconds: 750));
   late final _lC = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+  late final _pulseC = AnimationController(vsync: this, duration: const Duration(milliseconds: 850));
   late final _hFade = CurvedAnimation(parent: _hC, curve: Curves.easeOut);
   late final _hSlide = Tween<Offset>(begin: const Offset(0, .04), end: Offset.zero)
       .animate(CurvedAnimation(parent: _hC, curve: Curves.easeOut));
@@ -92,7 +93,7 @@ class _DS extends State<ShopOwnerDashboard> with TickerProviderStateMixin {
   void initState() { super.initState(); appLang.addListener(_onLangChange); _hC.forward(); _load(); }
   void _onLangChange() => setState(() {});
   @override
-  void dispose() { appLang.removeListener(_onLangChange); _hC.dispose(); _lC.dispose(); super.dispose(); }
+  void dispose() { appLang.removeListener(_onLangChange); _hC.dispose(); _lC.dispose(); _pulseC.dispose(); super.dispose(); }
 
   Future<void> _load() async {
     setState(() => _busy = true);
@@ -134,6 +135,9 @@ class _DS extends State<ShopOwnerDashboard> with TickerProviderStateMixin {
           return {...o, 'sc': oc(st), 'ic': oi(st), 'lb': ol(st)};
         }).toList();
       });
+      final hasUrgent = _orders.any((o) => (o['status'] as String?) == 'out_for_delivery');
+      if (hasUrgent) { if (!_pulseC.isAnimating) _pulseC.repeat(reverse: true); }
+      else { _pulseC.stop(); _pulseC.reset(); }
       _lC.forward();
     } catch (_) { if (mounted) setState(() => _busy = false); }
   }
@@ -170,7 +174,8 @@ class _DS extends State<ShopOwnerDashboard> with TickerProviderStateMixin {
   //  HOME
   // ══════════════════════════════════════════════════════
   Widget _home() {
-    return ColoredBox(
+    return Stack(fit: StackFit.expand, children: [
+      ColoredBox(
       color: _bg,
       child: RefreshIndicator(
         onRefresh: _load,
@@ -274,7 +279,197 @@ class _DS extends State<ShopOwnerDashboard> with TickerProviderStateMixin {
           ),
         ),
       ),
+      if (_orders.isNotEmpty)
+        Positioned(right: 20, bottom: 20, child: _deliveryFab()),
+    ]);
+  }
+
+  // ══════════════════════════════════════════════════════
+  //  DELIVERY STATUS FAB
+  // ══════════════════════════════════════════════════════
+  Widget _deliveryFab() {
+    final hasUrgent = _orders.any((o) => (o['status'] as String?) == 'out_for_delivery');
+    return AnimatedBuilder(
+      animation: _pulseC,
+      builder: (_, __) {
+        final scale = hasUrgent ? (1.0 + 0.09 * _pulseC.value) : 1.0;
+        return Transform.scale(
+          scale: scale,
+          child: GestureDetector(
+            onTap: _showDeliverySheet,
+            child: Container(
+              width: 60, height: 60,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: hasUrgent ? [_amb1, _amb2] : [_blue1, _blue2],
+                  begin: Alignment.topLeft, end: Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [BoxShadow(
+                  color: (hasUrgent ? _amb2 : _blue2).withOpacity(hasUrgent ? .65 : .45),
+                  blurRadius: hasUrgent ? 24 : 14, offset: const Offset(0, 6),
+                )],
+              ),
+              child: Stack(children: [
+                Center(child: Icon(
+                  hasUrgent ? Icons.local_shipping_rounded : Icons.receipt_long_rounded,
+                  color: Colors.white, size: 26)),
+                if (hasUrgent)
+                  Positioned(top: 8, right: 8,
+                    child: Container(width: 12, height: 12,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFEF5350), shape: BoxShape.circle))),
+              ]),
+            ),
+          ),
+        );
+      },
     );
+  }
+
+  void _showDeliverySheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.52,
+        minChildSize: 0.3,
+        maxChildSize: 0.85,
+        builder: (ctx, sc) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(28), topRight: Radius.circular(28)),
+          ),
+          child: Column(children: [
+            const SizedBox(height: 12),
+            Center(child: Container(width: 40, height: 4,
+              decoration: BoxDecoration(color: const Color(0xFFE0E0E0),
+                  borderRadius: BorderRadius.circular(2)))),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(children: [
+                Container(width: 38, height: 38,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: [_amb1, _amb2]),
+                    borderRadius: BorderRadius.circular(11)),
+                  child: const Icon(Icons.local_shipping_rounded,
+                      color: Colors.white, size: 19)),
+                const SizedBox(width: 12),
+                const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Active Deliveries', style: TextStyle(
+                      fontSize: 17, fontWeight: FontWeight.w900, color: _c0)),
+                  Text('Tap an order to track or confirm delivery',
+                      style: TextStyle(fontSize: 12, color: AppColors.textGrey)),
+                ])),
+                _Tap(onTap: () => Navigator.pop(context),
+                  child: Container(width: 34, height: 34,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F5F5), shape: BoxShape.circle),
+                    child: const Icon(Icons.close_rounded, size: 17, color: AppColors.textGrey))),
+              ]),
+            ),
+            const SizedBox(height: 12),
+            const Divider(height: 1),
+            Expanded(
+              child: ListView.builder(
+                controller: sc,
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                itemCount: _orders.length,
+                itemBuilder: (_, i) => _sheetOrderTile(_orders[i]),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _sheetOrderTile(Map<String, dynamic> o) {
+    final status  = o['status'] as String? ?? '';
+    final isOFD   = status == 'out_for_delivery';
+    final product = o['product'] as String? ?? '';
+    final price   = (o['price'] as num?)?.toDouble() ?? 0;
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      if (isOFD) Container(
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(colors: [_amb1.withOpacity(.1), _amb2.withOpacity(.05)]),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: _amb2.withOpacity(.4)),
+        ),
+        child: const Row(children: [
+          Icon(Icons.priority_high_rounded, color: _amb1, size: 15),
+          SizedBox(width: 8),
+          Expanded(child: Text('Action Required — Supplier is on the way!',
+              style: TextStyle(color: _amb1, fontWeight: FontWeight.w700, fontSize: 12))),
+        ]),
+      ),
+      _Tap(
+        onTap: () {
+          Navigator.pop(context);
+          Navigator.push(context, _push(OrderStatusScreen(order: o)));
+        },
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 14),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: isOFD ? _amb2.withOpacity(.05) : const Color(0xFFF8F9FF),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: isOFD ? _amb2.withOpacity(.4) : Colors.grey.shade200),
+            boxShadow: isOFD ? [BoxShadow(
+                color: _amb2.withOpacity(.15), blurRadius: 10, offset: const Offset(0, 3))] : null,
+          ),
+          child: Row(children: [
+            Container(width: 44, height: 44,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                    colors: isOFD ? [_amb1, _amb2] : [_blue1, _blue2],
+                    begin: Alignment.topLeft, end: Alignment.bottomRight),
+                borderRadius: BorderRadius.circular(12)),
+              child: Icon(isOFD ? Icons.local_shipping_rounded : Icons.inventory_2_rounded,
+                  color: Colors.white, size: 22)),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(product,
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14,
+                      color: AppColors.textDark),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+              const SizedBox(height: 3),
+              Text('৳${price.toStringAsFixed(0)}  ·  ${isOFD ? 'On the way' : (o['lb'] as String? ?? '')}',
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: isOFD ? _amb1 : AppColors.textGrey,
+                      fontWeight: isOFD ? FontWeight.w700 : FontWeight.w500)),
+            ])),
+            if (isOFD) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(colors: [_amb1, _amb2]),
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [BoxShadow(color: _amb2.withOpacity(.4),
+                      blurRadius: 8, offset: const Offset(0, 3))],
+                ),
+                child: const Column(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.pin_rounded, color: Colors.white, size: 14),
+                  SizedBox(height: 2),
+                  Text('Get OTP', textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white,
+                          fontWeight: FontWeight.w900, fontSize: 10)),
+                ]),
+              ),
+            ] else
+              Icon(Icons.chevron_right_rounded, color: Colors.grey.shade400, size: 20),
+          ]),
+        ),
+      ),
+    ]);
   }
 
   Widget _animI(int i, Widget child) => AnimatedBuilder(

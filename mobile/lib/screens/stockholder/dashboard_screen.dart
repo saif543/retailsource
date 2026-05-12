@@ -82,6 +82,7 @@ class _SD extends State<StockholderDashboard> with TickerProviderStateMixin {
 
   late final _hC = AnimationController(vsync: this, duration: const Duration(milliseconds: 750));
   late final _lC = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+  late final _pulseC = AnimationController(vsync: this, duration: const Duration(milliseconds: 850));
   late final _hFade = CurvedAnimation(parent: _hC, curve: Curves.easeOut);
   late final _hSlide = Tween<Offset>(begin: const Offset(0, .04), end: Offset.zero)
       .animate(CurvedAnimation(parent: _hC, curve: Curves.easeOut));
@@ -96,7 +97,7 @@ class _SD extends State<StockholderDashboard> with TickerProviderStateMixin {
   void initState() { super.initState(); appLang.addListener(_onLangChange); _hC.forward(); _load(); }
   void _onLangChange() => setState(() {});
   @override
-  void dispose() { appLang.removeListener(_onLangChange); _hC.dispose(); _lC.dispose(); super.dispose(); }
+  void dispose() { appLang.removeListener(_onLangChange); _hC.dispose(); _lC.dispose(); _pulseC.dispose(); super.dispose(); }
 
   Future<void> _load() async {
     setState(() => _busy = true);
@@ -122,6 +123,9 @@ class _SD extends State<StockholderDashboard> with TickerProviderStateMixin {
         _newOrders = orders.where((o) => o['status'] == 'pending').toList();
         _activeOrders = orders.where((o) =>
             o['status'] == 'accepted' || o['status'] == 'out_for_delivery').toList();
+        final hasOFD = _activeOrders.any((o) => o['status'] == 'out_for_delivery');
+        if (hasOFD) { if (!_pulseC.isAnimating) _pulseC.repeat(reverse: true); }
+        else { _pulseC.stop(); _pulseC.reset(); }
         _badge = notifs.unread;
         _lat = lat; _lng = lng;
         _hasLoc = lat != null && lat != 0.0 && lng != null && lng != 0.0;
@@ -253,44 +257,48 @@ class _SD extends State<StockholderDashboard> with TickerProviderStateMixin {
       case 2: return const OrderInboxScreen();
       case 3: return const ProfileScreen(role: 'stockholder');
       default: return SafeArea(bottom: false,
-        child: Column(children: [
-          _buildHeader(),
-          Expanded(child: RefreshIndicator(
-            color: _sp2,
-            onRefresh: _load,
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                if (!_hasLoc) ...[_buildLocationBanner(), const SizedBox(height: 14)],
-                _buildCTA(),
-                const SizedBox(height: 20),
-                _sectionHeader(S('quick_actions')),
-                const SizedBox(height: 12),
-                _buildQuickActions(),
-                const SizedBox(height: 24),
-                _sectionRow(S('active_orders'), '${_activeOrders.length} in progress', () => setState(() => _tab = 2)),
-                const SizedBox(height: 10),
-                if (_activeOrders.isEmpty)
-                  _emptyCard(Icons.local_shipping_outlined, 'No active deliveries')
-                else ..._activeOrders.asMap().entries.map((e) =>
-                    FadeTransition(opacity: _fd(e.key + 2),
-                      child: SlideTransition(position: _sl(e.key + 2),
-                        child: _activeOrderCard(e.value)))),
-                const SizedBox(height: 20),
-                _sectionRow(S('new_orders'), '${_newOrders.length} pending', () => setState(() => _tab = 2)),
-                const SizedBox(height: 12),
-                if (_newOrders.isEmpty)
-                  _emptyCard(Icons.inbox_rounded, 'No new orders right now')
-                else ..._newOrders.asMap().entries.map((e) =>
-                    FadeTransition(opacity: _fd(e.key),
-                      child: SlideTransition(position: _sl(e.key),
-                        child: _newOrderCard(e.value)))),
-                const SizedBox(height: 8),
-                _tipCard(),
-              ]),
-            ),
-          )),
+        child: Stack(fit: StackFit.expand, children: [
+          Column(children: [
+            _buildHeader(),
+            Expanded(child: RefreshIndicator(
+              color: _sp2,
+              onRefresh: _load,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  if (!_hasLoc) ...[_buildLocationBanner(), const SizedBox(height: 14)],
+                  _buildCTA(),
+                  const SizedBox(height: 20),
+                  _sectionHeader(S('quick_actions')),
+                  const SizedBox(height: 12),
+                  _buildQuickActions(),
+                  const SizedBox(height: 24),
+                  _sectionRow(S('active_orders'), '${_activeOrders.length} in progress', () => setState(() => _tab = 2)),
+                  const SizedBox(height: 10),
+                  if (_activeOrders.isEmpty)
+                    _emptyCard(Icons.local_shipping_outlined, 'No active deliveries')
+                  else ..._activeOrders.asMap().entries.map((e) =>
+                      FadeTransition(opacity: _fd(e.key + 2),
+                        child: SlideTransition(position: _sl(e.key + 2),
+                          child: _activeOrderCard(e.value)))),
+                  const SizedBox(height: 20),
+                  _sectionRow(S('new_orders'), '${_newOrders.length} pending', () => setState(() => _tab = 2)),
+                  const SizedBox(height: 12),
+                  if (_newOrders.isEmpty)
+                    _emptyCard(Icons.inbox_rounded, 'No new orders right now')
+                  else ..._newOrders.asMap().entries.map((e) =>
+                      FadeTransition(opacity: _fd(e.key),
+                        child: SlideTransition(position: _sl(e.key),
+                          child: _newOrderCard(e.value)))),
+                  const SizedBox(height: 8),
+                  _tipCard(),
+                ]),
+              ),
+            )),
+          ]),
+          if (_activeOrders.isNotEmpty)
+            Positioned(right: 20, bottom: 20, child: _deliveryFab()),
         ]),
       );
     }
@@ -745,6 +753,176 @@ class _SD extends State<StockholderDashboard> with TickerProviderStateMixin {
           style: TextStyle(fontSize: 12, color: _sp1, fontWeight: FontWeight.w600))),
     ]),
   );
+
+  // ── delivery status FAB ───────────────────────────────────────────────────
+  Widget _deliveryFab() {
+    final hasOFD = _activeOrders.any((o) => o['status'] == 'out_for_delivery');
+    return AnimatedBuilder(
+      animation: _pulseC,
+      builder: (_, __) {
+        final scale = hasOFD ? (1.0 + 0.09 * _pulseC.value) : 1.0;
+        return Transform.scale(
+          scale: scale,
+          child: GestureDetector(
+            onTap: _showDeliverySheet,
+            child: Container(
+              width: 60, height: 60,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: hasOFD ? [_ind1, _ind2] : [_sp1, _sp3],
+                  begin: Alignment.topLeft, end: Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [BoxShadow(
+                  color: (hasOFD ? _ind2 : _sp3).withOpacity(hasOFD ? .65 : .45),
+                  blurRadius: hasOFD ? 24 : 14, offset: const Offset(0, 6),
+                )],
+              ),
+              child: Stack(children: [
+                Center(child: Icon(
+                  hasOFD ? Icons.local_shipping_rounded : Icons.receipt_long_rounded,
+                  color: Colors.white, size: 26)),
+                if (hasOFD)
+                  Positioned(top: 8, right: 8,
+                    child: Container(width: 12, height: 12,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFEF5350), shape: BoxShape.circle))),
+              ]),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showDeliverySheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.52,
+        minChildSize: 0.3,
+        maxChildSize: 0.85,
+        builder: (ctx, sc) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(28), topRight: Radius.circular(28)),
+          ),
+          child: Column(children: [
+            const SizedBox(height: 12),
+            Center(child: Container(width: 40, height: 4,
+              decoration: BoxDecoration(color: const Color(0xFFE0E0E0),
+                  borderRadius: BorderRadius.circular(2)))),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(children: [
+                Container(width: 38, height: 38,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: [_sp1, _sp3]),
+                    borderRadius: BorderRadius.circular(11)),
+                  child: const Icon(Icons.local_shipping_rounded,
+                      color: Colors.white, size: 19)),
+                const SizedBox(width: 12),
+                const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Active Deliveries', style: TextStyle(
+                      fontSize: 17, fontWeight: FontWeight.w900, color: _sp0)),
+                  Text('Tap to manage or enter OTP',
+                      style: TextStyle(fontSize: 12, color: _sub)),
+                ])),
+                _Tap(onTap: () => Navigator.pop(context),
+                  child: Container(width: 34, height: 34,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F5F5), shape: BoxShape.circle),
+                    child: const Icon(Icons.close_rounded, size: 17, color: _sub))),
+              ]),
+            ),
+            const SizedBox(height: 12),
+            const Divider(height: 1),
+            Expanded(
+              child: ListView.builder(
+                controller: sc,
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                itemCount: _activeOrders.length,
+                itemBuilder: (_, i) => _sheetOrderTile(_activeOrders[i]),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _sheetOrderTile(Map<String, dynamic> o) {
+    final status  = o['status'] as String? ?? '';
+    final isOFD   = status == 'out_for_delivery';
+    final product = (o['product'] as String?) ?? '';
+    final price   = (o['price'] as num?)?.toDouble() ?? 0;
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      if (isOFD) Container(
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: _ind2.withOpacity(.08),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: _ind2.withOpacity(.35)),
+        ),
+        child: const Row(children: [
+          Icon(Icons.vpn_key_rounded, color: _ind1, size: 14),
+          SizedBox(width: 8),
+          Expanded(child: Text('Waiting for OTP — parcel is on the way',
+              style: TextStyle(color: _ind1, fontWeight: FontWeight.w700, fontSize: 12))),
+        ]),
+      ),
+      _Tap(
+        onTap: () {
+          Navigator.pop(context);
+          Navigator.push(context, MaterialPageRoute(
+              builder: (_) => StockholderOrderDetailScreen(order: o)))
+            .then((_) => _load());
+        },
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 14),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: isOFD ? _ind2.withOpacity(.04) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+                color: isOFD ? _ind2.withOpacity(.35) : Colors.grey.shade200),
+            boxShadow: isOFD ? [BoxShadow(
+                color: _ind2.withOpacity(.12), blurRadius: 10, offset: const Offset(0, 3))] : null,
+          ),
+          child: Row(children: [
+            Container(width: 44, height: 44,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                    colors: isOFD ? [_ind1, _ind2] : [_sp1, _sp3],
+                    begin: Alignment.topLeft, end: Alignment.bottomRight),
+                borderRadius: BorderRadius.circular(12)),
+              child: Icon(isOFD ? Icons.local_shipping_rounded : Icons.check_circle_outline,
+                  color: Colors.white, size: 22)),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(product,
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: _txt),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+              const SizedBox(height: 3),
+              Text('৳${price.toStringAsFixed(0)}  ·  ${isOFD ? 'Awaiting OTP' : 'Accepted'}',
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: isOFD ? _ind1 : _sub,
+                      fontWeight: isOFD ? FontWeight.w700 : FontWeight.w500)),
+            ])),
+            const SizedBox(width: 8),
+            Icon(Icons.chevron_right_rounded, color: Colors.grey.shade400, size: 20),
+          ]),
+        ),
+      ),
+    ]);
+  }
 
   // ── bottom nav ────────────────────────────────────────────────────────────
   Widget _buildBottomNav() {
