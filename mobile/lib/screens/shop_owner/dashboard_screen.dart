@@ -279,6 +279,7 @@ class _DS extends State<ShopOwnerDashboard> with TickerProviderStateMixin {
           ),
         ),
       ),
+    ),
       if (_orders.isNotEmpty)
         Positioned(right: 20, bottom: 20, child: _deliveryFab()),
     ]);
