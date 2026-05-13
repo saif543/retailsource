@@ -58,6 +58,7 @@ class _SODS extends State<StockholderOrderDetailScreen> {
   final List<FocusNode> _otpFocus = List.generate(6, (_) => FocusNode());
   bool _otpVerifying = false;
   String _otpError = '';
+  bool _showOtp = false;
 
   @override
   void initState() {
@@ -435,68 +436,104 @@ class _SODS extends State<StockholderOrderDetailScreen> {
                               fontSize: 15, fontWeight: FontWeight.w900)),
                         ])))),
 
-            // Context: out_for_delivery → OTP entry
+            // Context: out_for_delivery → "Mark as Delivered" first, then OTP
             ] else if (_status == 'out_for_delivery') ...[
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: _ind2.withOpacity(.4)),
-                  boxShadow: [BoxShadow(color: _ind2.withOpacity(.15),
-                      blurRadius: 16, offset: const Offset(0, 4))],
+              if (!_showOtp) ...[
+                // Step 1: arrived at shop — tap to reveal OTP form
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: _ind2.withOpacity(.06),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: _ind2.withOpacity(.3)),
+                  ),
+                  child: Row(children: [
+                    const Icon(Icons.info_outline_rounded, color: _ind1, size: 18),
+                    const SizedBox(width: 10),
+                    const Expanded(child: Text(
+                      'You are currently on the way. Tap "Mark as Delivered" when you arrive at the shop and are ready to hand over the order.',
+                      style: TextStyle(color: _ind1, fontSize: 12.5, height: 1.45))),
+                  ]),
                 ),
-                child: Column(children: [
-                  Container(width: 56, height: 56,
+                const SizedBox(height: 12),
+                _Tap(onTap: () => setState(() => _showOtp = true),
+                  child: Container(width: double.infinity, height: 52,
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(colors: [_ind1, _ind2],
-                          begin: Alignment.topLeft, end: Alignment.bottomRight),
-                      shape: BoxShape.circle,
-                      boxShadow: [BoxShadow(color: _ind2.withOpacity(.4),
-                          blurRadius: 14, offset: const Offset(0, 4))],
+                      gradient: const LinearGradient(colors: [_sp1, _sp3]),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [BoxShadow(color: _sp3.withOpacity(.35),
+                          blurRadius: 14, offset: const Offset(0, 6))],
                     ),
-                    child: const Icon(Icons.vpn_key_rounded, color: Colors.white, size: 26)),
-                  const SizedBox(height: 14),
-                  const Text('Enter OTP from Shop Owner', style: TextStyle(
-                      fontWeight: FontWeight.w900, fontSize: 16, color: _txt)),
-                  const SizedBox(height: 6),
-                  const Text('Ask the shop owner for the 6-digit code to confirm delivery',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: _sub, fontSize: 12.5)),
-                  const SizedBox(height: 20),
-                  Row(mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(6, _otpBox)),
-                  if (_otpError.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    child: const Center(child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 20),
+                      SizedBox(width: 10),
+                      Text('Mark as Delivered', style: TextStyle(color: Colors.white,
+                          fontSize: 15, fontWeight: FontWeight.w900)),
+                    ])))),
+              ] else ...[
+                // Step 2: OTP entry
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: _ind2.withOpacity(.4)),
+                    boxShadow: [BoxShadow(color: _ind2.withOpacity(.15),
+                        blurRadius: 16, offset: const Offset(0, 4))],
+                  ),
+                  child: Column(children: [
+                    Container(width: 56, height: 56,
                       decoration: BoxDecoration(
-                        color: _red2.withOpacity(.08),
-                        borderRadius: BorderRadius.circular(10),
+                        gradient: const LinearGradient(colors: [_ind1, _ind2],
+                            begin: Alignment.topLeft, end: Alignment.bottomRight),
+                        shape: BoxShape.circle,
+                        boxShadow: [BoxShadow(color: _ind2.withOpacity(.4),
+                            blurRadius: 14, offset: const Offset(0, 4))],
                       ),
-                      child: Text(_otpError, style: const TextStyle(
-                          color: _red2, fontSize: 13, fontWeight: FontWeight.w600))),
-                  ],
-                  const SizedBox(height: 18),
-                  _Tap(onTap: _otpVerifying ? () {} : _verifyOtp,
-                    child: Container(width: double.infinity, height: 50,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(colors: [_ind1, _ind2]),
-                        borderRadius: BorderRadius.circular(14),
-                        boxShadow: [BoxShadow(color: _ind2.withOpacity(.35),
-                            blurRadius: 14, offset: const Offset(0, 6))],
-                      ),
-                      child: Center(child: _otpVerifying
-                          ? const SizedBox(width: 22, height: 22,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                          : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                              const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-                              const SizedBox(width: 8),
-                              Text(S('confirm_delivery_btn'), style: const TextStyle(color: Colors.white,
-                                  fontSize: 15, fontWeight: FontWeight.w900)),
-                            ])))),
-                ]),
-              ),
+                      child: const Icon(Icons.vpn_key_rounded, color: Colors.white, size: 26)),
+                    const SizedBox(height: 14),
+                    const Text('Enter OTP from Shop Owner', style: TextStyle(
+                        fontWeight: FontWeight.w900, fontSize: 16, color: _txt)),
+                    const SizedBox(height: 6),
+                    const Text('Ask the shop owner for the 6-digit code to confirm delivery',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: _sub, fontSize: 12.5)),
+                    const SizedBox(height: 20),
+                    Row(mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(6, _otpBox)),
+                    if (_otpError.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: _red2.withOpacity(.08),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(_otpError, style: const TextStyle(
+                            color: _red2, fontSize: 13, fontWeight: FontWeight.w600))),
+                    ],
+                    const SizedBox(height: 18),
+                    _Tap(onTap: _otpVerifying ? () {} : _verifyOtp,
+                      child: Container(width: double.infinity, height: 50,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(colors: [_ind1, _ind2]),
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [BoxShadow(color: _ind2.withOpacity(.35),
+                              blurRadius: 14, offset: const Offset(0, 6))],
+                        ),
+                        child: Center(child: _otpVerifying
+                            ? const SizedBox(width: 22, height: 22,
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                            : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                                const SizedBox(width: 8),
+                                Text(S('confirm_delivery_btn'), style: const TextStyle(color: Colors.white,
+                                    fontSize: 15, fontWeight: FontWeight.w900)),
+                              ])))),
+                  ]),
+                ),
+              ],
 
             // Context: delivered → success + receipt
             ] else if (_status == 'delivered') ...[
