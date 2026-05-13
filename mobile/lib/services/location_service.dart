@@ -85,4 +85,42 @@ class LocationService {
     final coords = await getCurrentCoords();
     return reverseGeocode(coords.lat, coords.lng);
   }
+
+  /// Forward-geocode a search query → list of candidate locations.
+  /// Restricted to Bangladesh (countrycodes=bd).
+  static Future<List<LocationResult>> searchAddress(String query) async {
+    if (query.trim().isEmpty) return [];
+    final url = Uri.parse(
+        'https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(query)}&format=json&limit=5&countrycodes=bd&addressdetails=1&accept-language=en');
+    try {
+      final res = await http.get(url, headers: {
+        'User-Agent': 'SupplyLink/1.0 (Bangladesh shop-supplier app)',
+      });
+      if (res.statusCode != 200) return [];
+      final List<dynamic> results = jsonDecode(res.body);
+      return results.map((r) {
+        final addr = (r['address'] ?? {}) as Map<String, dynamic>;
+        final lat = double.tryParse(r['lat']?.toString() ?? '') ?? 0.0;
+        final lng = double.tryParse(r['lon']?.toString() ?? '') ?? 0.0;
+        final area = (addr['suburb'] ?? addr['neighbourhood'] ??
+                addr['village'] ?? addr['town'] ?? addr['city_district'] ?? '')
+            .toString();
+        final district = (addr['city'] ??
+                addr['state_district'] ??
+                addr['county'] ??
+                addr['state'] ??
+                '')
+            .toString();
+        return LocationResult(
+          lat: lat,
+          lng: lng,
+          address: (r['display_name'] ?? '').toString(),
+          area: area,
+          district: district,
+        );
+      }).toList();
+    } catch (_) {
+      return [];
+    }
+  }
 }
